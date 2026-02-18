@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-brand: 51, 141, 252;
+  }
+
+  body {
+    @apply bg-gray-950 text-gray-100 font-sans;
+    background-image:
+      radial-gradient(ellipse at 10% 0%, rgba(var(--color-brand), 0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 90% 100%, rgba(139, 92, 246, 0.04) 0%, transparent 50%);
+    min-height: 100vh;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-gray-900/60 backdrop-blur-xl border border-gray-800/50 rounded-2xl;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.03) inset,
+      0 4px 30px rgba(0,0,0,0.3);
+  }
+
+  .glass-card-hover {
+    @apply glass-card transition-all duration-300;
+  }
+
+  .glass-card-hover:hover {
+    @apply border-gray-700/60;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.05) inset,
+      0 8px 40px rgba(0,0,0,0.4),
+      0 0 20px rgba(var(--color-brand), 0.05);
+    transform: translateY(-2px);
+  }
+
+  .vital-badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .status-dot {
+    @apply w-2 h-2 rounded-full;
+  }
+
+  .status-dot-active {
+    @apply status-dot bg-emerald-400;
+    animation: pulse 2s ease-in-out infinite;
+  }
+}
