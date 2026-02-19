@@ -22,7 +22,7 @@ from fastapi.responses import FileResponse
 from app.config import get_settings
 from app.database.database import init_db
 from app.sensors.sensor_manager import start_collection, stop_collection
-from app.routes import vitals, patient, system
+from app.routes import vitals, patient, system, auth
 
 # ── Logging ─────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -56,6 +56,28 @@ async def _periodic_sync() -> None:
 
 # ── Lifespan ────────────────────────────────────────────────────────────────
 
+async def _seed_admin() -> None:
+    """Create a default admin user if no users exist."""
+    from sqlalchemy import select, func
+    from app.database.database import async_session
+    from app.database.models import User
+    from app.auth import hash_password
+
+    async with async_session() as session:
+        count = (await session.execute(select(func.count(User.id)))).scalar() or 0
+        if count == 0:
+            admin = User(
+                username="admin",
+                hashed_password=hash_password(settings.DEFAULT_ADMIN_PASSWORD),
+                role="admin",
+            )
+            session.add(admin)
+            await session.commit()
+            logger.info("🔑 Default admin user created (username: admin)")
+        else:
+            logger.info(f"🔑 {count} user(s) already exist, skipping seed")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup / shutdown lifecycle."""
@@ -72,11 +94,15 @@ async def lifespan(app: FastAPI):
     await init_db()
     logger.info("✅ Database initialised")
 
-    # 2. Start sensor collection
+    # 2. Seed default admin user if no users exist
+    await _seed_admin()
+    logger.info("✅ Admin user verified")
+
+    # 3. Start sensor collection
     await start_collection()
     logger.info("✅ Sensor collection started")
 
-    # 3. Start periodic sync
+    # 4. Start periodic sync
     _sync_task = asyncio.create_task(_periodic_sync())
     logger.info(f"✅ Sync scheduler started (every {settings.SYNC_INTERVAL_SECONDS}s)")
 
@@ -113,6 +139,7 @@ app.add_middleware(
 )
 
 # ── Routers ─────────────────────────────────────────────────────────────────
+app.include_router(auth.router)
 app.include_router(vitals.router)
 app.include_router(patient.router)
 app.include_router(system.router)

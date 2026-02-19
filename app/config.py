@@ -29,6 +29,8 @@ class Settings(BaseSettings):
 
     # ── Security ────────────────────────────────────────────────────────
     SECRET_KEY: str = "change-this-to-a-random-secret-key"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 480  # 8 hours
+    DEFAULT_ADMIN_PASSWORD: str = "admin"
 
     # ── Server ──────────────────────────────────────────────────────────
     HOST: str = "0.0.0.0"

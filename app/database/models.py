@@ -30,6 +30,22 @@ def _generate_uuid() -> str:
     return str(uuid.uuid4())
 
 
+# ── User ────────────────────────────────────────────────────────────────────
+
+class User(Base):
+    """Authenticated user who can access this edge node."""
+
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    uuid = Column(String(36), unique=True, nullable=False, default=_generate_uuid)
+    username = Column(String(50), unique=True, nullable=False, index=True)
+    hashed_password = Column(String(255), nullable=False)
+    role = Column(String(20), nullable=False, default="viewer")  # "admin" or "viewer"
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), default=_utcnow)
+
+
 # ── Patient ─────────────────────────────────────────────────────────────────
 
 class Patient(Base):

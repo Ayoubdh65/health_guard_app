@@ -101,3 +101,33 @@ class SyncResult(BaseModel):
     records_sent: int
     duration_ms: int
     error: Optional[str] = None
+
+
+# ── Authentication ──────────────────────────────────────────────────────────
+
+class UserCreate(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50)
+    password: str = Field(..., min_length=4)
+    role: Optional[str] = "viewer"
+
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+
+class UserResponse(BaseModel):
+    id: int
+    uuid: str
+    username: str
+    role: str
+    is_active: bool
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserResponse

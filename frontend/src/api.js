@@ -1,22 +1,71 @@
 /**
  * HealthGuard API client – talks to the FastAPI backend.
+ * Includes JWT token management for authenticated requests.
  */
 
 const BASE = '/api';
 
-async function request(path, options = {}) {
-    const res = await fetch(`${BASE}${path}`, {
-        headers: { 'Content-Type': 'application/json', ...options.headers },
-        ...options,
-    });
-    if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`API ${res.status}: ${text}`);
+// ── Token helpers ──────────────────────────────────────────────────────────
+
+export function getToken() {
+    return localStorage.getItem('hg_token');
+}
+
+export function getStoredUser() {
+    try {
+        return JSON.parse(localStorage.getItem('hg_user'));
+    } catch {
+        return null;
     }
+}
+
+export function clearAuth() {
+    localStorage.removeItem('hg_token');
+    localStorage.removeItem('hg_user');
+}
+
+// ── Core request helper ────────────────────────────────────────────────────
+
+async function request(path, options = {}) {
+    const token = getToken();
+    const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers,
+    };
+
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const res = await fetch(`${BASE}${path}`, { ...options, headers });
+
+    // Auto-logout on 401
+    if (res.status === 401) {
+        clearAuth();
+        window.dispatchEvent(new Event('hg:logout'));
+        throw new Error('Session expired');
+    }
+
+    if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail || `API ${res.status}`);
+    }
+
     return res.json();
 }
 
+// ── API methods ────────────────────────────────────────────────────────────
+
 export const api = {
+    // Auth
+    login: (username, password) =>
+        request('/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ username, password }),
+        }),
+
+    getMe: () => request('/auth/me'),
+
     // Vitals
     getVitals: (page = 1, pageSize = 50) =>
         request(`/vitals?page=${page}&page_size=${pageSize}`),
@@ -39,10 +88,16 @@ export const api = {
 
 /**
  * Connect to SSE stream for real-time vital updates.
+ * Passes JWT token as query parameter since EventSource can't set headers.
  * Returns an EventSource instance; call .close() to disconnect.
  */
 export function subscribeVitals(onData) {
-    const source = new EventSource(`${BASE}/vitals/stream`);
+    const token = getToken();
+    const url = token
+        ? `${BASE}/vitals/stream?token=${encodeURIComponent(token)}`
+        : `${BASE}/vitals/stream`;
+
+    const source = new EventSource(url);
     source.onmessage = (event) => {
         try {
             const data = JSON.parse(event.data);

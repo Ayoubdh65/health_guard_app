@@ -6,6 +6,9 @@ import os
 import time
 
 from fastapi import APIRouter, Depends
+
+from app.auth import get_current_user
+from app.database.models import User
 from sqlalchemy import select, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,7 +24,10 @@ _start_time = time.time()
 
 
 @router.get("/status", response_model=SystemStatus)
-async def system_status(db: AsyncSession = Depends(get_db)):
+async def system_status(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
     """Device health: DB size, sync state, sensor status, uptime."""
     settings = get_settings()
 
@@ -63,7 +69,7 @@ async def system_status(db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/sync", response_model=SyncResult)
-async def trigger_sync():
+async def trigger_sync(current_user: User = Depends(get_current_user)):
     """Manually trigger a data sync to the central server."""
     from app.sync.sync_service import sync_now
     return await sync_now()

@@ -12,8 +12,9 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import select, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth import get_current_user
 from app.database.database import get_db
-from app.database.models import VitalReading
+from app.database.models import User, VitalReading
 from app.schemas import VitalReadingResponse, VitalStats, VitalsPaginated
 
 router = APIRouter(prefix="/api/vitals", tags=["Vitals"])
@@ -25,6 +26,7 @@ async def list_vitals(
     page_size: int = Query(50, ge=1, le=500),
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Paginated list of vital readings with optional time-range filter."""
@@ -57,7 +59,10 @@ async def list_vitals(
 
 
 @router.get("/latest", response_model=Optional[VitalReadingResponse])
-async def latest_vital(db: AsyncSession = Depends(get_db)):
+async def latest_vital(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
     """Most recent vital reading."""
     result = await db.execute(
         select(VitalReading).order_by(desc(VitalReading.timestamp)).limit(1)
@@ -71,6 +76,7 @@ async def latest_vital(db: AsyncSession = Depends(get_db)):
 @router.get("/stats", response_model=VitalStats)
 async def vital_stats(
     hours: int = Query(24, ge=1, le=720),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Aggregated stats (avg/min/max) over the last N hours."""
@@ -110,7 +116,11 @@ async def vital_stats(
 
 
 @router.get("/stream")
-async def stream_vitals(request: Request, db: AsyncSession = Depends(get_db)):
+async def stream_vitals(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
     """Server-Sent Events (SSE) endpoint for real-time vital updates."""
 
     async def event_generator():

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Heart,
     Droplets,
@@ -6,12 +6,16 @@ import {
     Activity,
     Wind,
     Shield,
+    LogOut,
+    User,
 } from 'lucide-react';
 
+import LoginPage from './components/LoginPage';
 import VitalCard from './components/VitalCard';
 import VitalChart from './components/VitalChart';
 import PatientInfo from './components/PatientInfo';
 import SystemStatus from './components/SystemStatus';
+import { getToken, getStoredUser, clearAuth } from './api';
 import {
     useLatestVital,
     useVitalStream,
@@ -20,6 +24,40 @@ import {
 } from './hooks/useHealthData';
 
 export default function App() {
+    const [isAuthenticated, setIsAuthenticated] = useState(!!getToken());
+    const [currentUser, setCurrentUser] = useState(getStoredUser());
+
+    // Listen for auto-logout events from api.js (401 responses)
+    useEffect(() => {
+        const handleLogout = () => {
+            setIsAuthenticated(false);
+            setCurrentUser(null);
+        };
+        window.addEventListener('hg:logout', handleLogout);
+        return () => window.removeEventListener('hg:logout', handleLogout);
+    }, []);
+
+    const handleLogin = (data) => {
+        setIsAuthenticated(true);
+        setCurrentUser(data.user);
+    };
+
+    const handleLogout = () => {
+        clearAuth();
+        setIsAuthenticated(false);
+        setCurrentUser(null);
+    };
+
+    if (!isAuthenticated) {
+        return <LoginPage onLogin={handleLogin} />;
+    }
+
+    return <Dashboard currentUser={currentUser} onLogout={handleLogout} />;
+}
+
+// ── Dashboard (only rendered when authenticated) ───────────────────────────
+
+function Dashboard({ currentUser, onLogout }) {
     const { data: latest, loading: vitalsLoading } = useLatestVital(5000);
     const streamData = useVitalStream(60);
     const { patient, loading: patientLoading } = usePatient();
@@ -68,6 +106,21 @@ export default function App() {
                                 {status.device_id}
                             </span>
                         )}
+
+                        {/* User badge + Logout */}
+                        <div className="flex items-center gap-2 ml-2 pl-3 border-l border-gray-800/50">
+                            <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                                <User className="w-3.5 h-3.5" />
+                                <span className="hidden sm:inline">{currentUser?.username}</span>
+                            </div>
+                            <button
+                                onClick={onLogout}
+                                className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200"
+                                title="Sign out"
+                            >
+                                <LogOut className="w-4 h-4" />
+                            </button>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -149,8 +202,8 @@ export default function App() {
                                     key={key}
                                     onClick={() => toggleChartVital(key)}
                                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 border ${chartVitals.includes(key)
-                                            ? 'bg-brand-600/20 border-brand-500/40 text-brand-300'
-                                            : 'bg-gray-900/40 border-gray-800/50 text-gray-500 hover:text-gray-300 hover:border-gray-700/60'
+                                        ? 'bg-brand-600/20 border-brand-500/40 text-brand-300'
+                                        : 'bg-gray-900/40 border-gray-800/50 text-gray-500 hover:text-gray-300 hover:border-gray-700/60'
                                         }`}
                                 >
                                     {label}
