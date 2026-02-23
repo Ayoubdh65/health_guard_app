@@ -55,4 +55,52 @@
     @apply status-dot bg-emerald-400;
     animation: pulse 2s ease-in-out infinite;
   }
+
+  /* ── Navigation tabs ──────────────────────────────────── */
+  .nav-tab {
+    @apply relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium
+           text-gray-500 transition-all duration-200 cursor-pointer;
+  }
+
+  .nav-tab:hover {
+    @apply text-gray-300 bg-white/[0.03];
+  }
+
+  .nav-tab-active {
+    @apply text-brand-300 bg-brand-600/15;
+    box-shadow: 0 0 12px rgba(var(--color-brand), 0.08);
+  }
+
+  /* ── Alert badge ──────────────────────────────────────── */
+  .badge-count {
+    @apply inline-flex items-center justify-center min-w-[18px] h-[18px]
+           px-1 rounded-full text-[10px] font-bold leading-none
+           bg-red-500 text-white;
+    animation: badge-pop 0.3s ease-out;
+  }
+
+  @keyframes badge-pop {
+    0%   { transform: scale(0); }
+    50%  { transform: scale(1.2); }
+    100% { transform: scale(1); }
+  }
+}
+
+/* ── Animations ─────────────────────────────────────────── */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.4s ease-out;
 }

@@ -58,6 +58,71 @@ async def list_vitals(
     )
 
 
+@router.get("/history", response_model=None)
+async def vital_history(
+    period: str = Query("24h", regex="^(1h|6h|24h|7d|30d)$"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Time-series vital data for historical charting.
+
+    Periods: 1h, 6h, 24h, 7d, 30d.
+    Short periods return raw readings; longer periods return averaged buckets.
+    """
+    from app.schemas import VitalHistoryPoint, VitalHistoryResponse
+
+    period_map = {
+        "1h": timedelta(hours=1),
+        "6h": timedelta(hours=6),
+        "24h": timedelta(hours=24),
+        "7d": timedelta(days=7),
+        "30d": timedelta(days=30),
+    }
+    delta = period_map[period]
+    cutoff = datetime.now(timezone.utc) - delta
+
+    # For short periods, return raw readings; for longer, limit to keep payload manageable
+    max_points = 500 if period in ("1h", "6h") else 300
+
+    result = await db.execute(
+        select(VitalReading)
+        .where(VitalReading.timestamp >= cutoff)
+        .order_by(VitalReading.timestamp)
+    )
+    readings = result.scalars().all()
+    total_readings = len(readings)
+
+    # Downsample if too many points
+    if len(readings) > max_points:
+        step = len(readings) / max_points
+        sampled = [readings[int(i * step)] for i in range(max_points)]
+        readings = sampled
+        granularity = "sampled"
+    else:
+        granularity = "raw"
+
+    points = [
+        VitalHistoryPoint(
+            timestamp=r.timestamp,
+            heart_rate=round(r.heart_rate, 1) if r.heart_rate else None,
+            spo2=round(r.spo2, 1) if r.spo2 else None,
+            temperature=round(r.temperature, 1) if r.temperature else None,
+            blood_pressure_sys=round(r.blood_pressure_sys, 1) if r.blood_pressure_sys else None,
+            blood_pressure_dia=round(r.blood_pressure_dia, 1) if r.blood_pressure_dia else None,
+            respiratory_rate=round(r.respiratory_rate, 1) if r.respiratory_rate else None,
+        )
+        for r in readings
+    ]
+
+    return VitalHistoryResponse(
+        points=points,
+        period=period,
+        granularity=granularity,
+        total_readings=total_readings,
+    )
+
+
 @router.get("/latest", response_model=Optional[VitalReadingResponse])
 async def latest_vital(
     current_user: User = Depends(get_current_user),

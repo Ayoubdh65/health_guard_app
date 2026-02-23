@@ -65,8 +65,8 @@ async def _ensure_default_patient(session: AsyncSession) -> int:
     return patient.id
 
 
-async def _persist_reading(data: SensorData, patient_id: int) -> None:
-    """Write a SensorData object to the database."""
+async def _persist_reading(data: SensorData, patient_id: int) -> int:
+    """Write a SensorData object to the database. Returns the reading ID."""
     async with async_session() as session:
         reading = VitalReading(
             patient_id=patient_id,
@@ -82,6 +82,8 @@ async def _persist_reading(data: SensorData, patient_id: int) -> None:
         )
         session.add(reading)
         await session.commit()
+        await session.refresh(reading)
+        return reading.id
 
 
 async def _collection_loop(reader: SensorReader) -> None:
@@ -98,7 +100,14 @@ async def _collection_loop(reader: SensorReader) -> None:
     while True:
         try:
             data = await reader.read()
-            await _persist_reading(data, patient_id)
+            reading_id = await _persist_reading(data, patient_id)
+
+            # Anomaly detection
+            from app.sensors.alert_engine import check_reading
+            alerts = await check_reading(data, reading_id, patient_id)
+            if alerts:
+                logger.warning(f"🚨 {len(alerts)} alert(s) generated")
+
             logger.debug(
                 f"Vitals recorded: HR={data.heart_rate} SpO₂={data.spo2} "
                 f"Temp={data.temperature} BP={data.blood_pressure_sys}/{data.blood_pressure_dia}"

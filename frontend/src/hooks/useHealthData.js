@@ -95,3 +95,68 @@ export function useVitalStats(hours = 24) {
 
     return { stats, loading };
 }
+
+/** Fetch active (unacknowledged) alerts, polling every `interval` ms. */
+export function useAlerts(interval = 10000) {
+    const [alerts, setAlerts] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const refresh = useCallback(async () => {
+        try {
+            const res = await api.getActiveAlerts();
+            setAlerts(res);
+            setLoading(false);
+        } catch { setLoading(false); }
+    }, []);
+
+    useEffect(() => {
+        refresh();
+        const id = setInterval(refresh, interval);
+        return () => clearInterval(id);
+    }, [interval, refresh]);
+
+    return { alerts, loading, refresh };
+}
+
+/** Fetch alert stats (counts), polling every `interval` ms. */
+export function useAlertStats(interval = 10000) {
+    const [stats, setStats] = useState({ total: 0, critical: 0, warning: 0, unacknowledged: 0 });
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        let mounted = true;
+
+        const fetch = async () => {
+            try {
+                const res = await api.getAlertStats();
+                if (mounted) { setStats(res); setLoading(false); }
+            } catch { if (mounted) setLoading(false); }
+        };
+
+        fetch();
+        const id = setInterval(fetch, interval);
+        return () => { mounted = false; clearInterval(id); };
+    }, [interval]);
+
+    return { stats, loading };
+}
+
+/** Fetch vital history for a given period. */
+export function useVitalHistory(period = '24h') {
+    const [data, setData] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        let mounted = true;
+        setLoading(true);
+
+        api.getVitalHistory(period)
+            .then((res) => { if (mounted) setData(res); })
+            .catch(() => { })
+            .finally(() => { if (mounted) setLoading(false); });
+
+        return () => { mounted = false; };
+    }, [period]);
+
+    return { data, loading };
+}

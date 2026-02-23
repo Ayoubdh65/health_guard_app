@@ -8,6 +8,9 @@ import {
     Shield,
     LogOut,
     User,
+    Bell,
+    TrendingUp,
+    Monitor,
 } from 'lucide-react';
 
 import LoginPage from './components/LoginPage';
@@ -15,12 +18,15 @@ import VitalCard from './components/VitalCard';
 import VitalChart from './components/VitalChart';
 import PatientInfo from './components/PatientInfo';
 import SystemStatus from './components/SystemStatus';
+import AlertsPanel from './components/AlertsPanel';
+import HistoryDashboard from './components/HistoryDashboard';
 import { getToken, getStoredUser, clearAuth } from './api';
 import {
     useLatestVital,
     useVitalStream,
     usePatient,
     useSystemStatus,
+    useAlertStats,
 } from './hooks/useHealthData';
 
 export default function App() {
@@ -57,12 +63,20 @@ export default function App() {
 
 // ── Dashboard (only rendered when authenticated) ───────────────────────────
 
+const TABS = [
+    { key: 'monitor', label: 'Monitor', icon: Monitor },
+    { key: 'history', label: 'History', icon: TrendingUp },
+    { key: 'alerts', label: 'Alerts', icon: Bell },
+];
+
 function Dashboard({ currentUser, onLogout }) {
     const { data: latest, loading: vitalsLoading } = useLatestVital(5000);
     const streamData = useVitalStream(60);
     const { patient, loading: patientLoading } = usePatient();
     const { status, loading: systemLoading } = useSystemStatus(10000);
+    const { stats: alertStats } = useAlertStats(8000);
 
+    const [activeTab, setActiveTab] = useState('monitor');
     const [chartVitals, setChartVitals] = useState(['heart_rate', 'spo2']);
 
     const vitalOptions = [
@@ -96,6 +110,25 @@ function Dashboard({ currentUser, onLogout }) {
                         </div>
                     </div>
 
+                    {/* ── Navigation Tabs ────────────────────────────────── */}
+                    <nav className="flex items-center gap-1 bg-gray-900/50 rounded-xl p-1 border border-gray-800/40">
+                        {TABS.map(({ key, label, icon: TabIcon }) => (
+                            <button
+                                key={key}
+                                onClick={() => setActiveTab(key)}
+                                className={`nav-tab ${activeTab === key ? 'nav-tab-active' : ''}`}
+                            >
+                                <TabIcon className="w-4 h-4" />
+                                <span className="hidden sm:inline">{label}</span>
+                                {key === 'alerts' && alertStats.unacknowledged > 0 && (
+                                    <span className="badge-count">
+                                        {alertStats.unacknowledged > 99 ? '99+' : alertStats.unacknowledged}
+                                    </span>
+                                )}
+                            </button>
+                        ))}
+                    </nav>
+
                     <div className="flex items-center gap-3">
                         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-900/60 border border-gray-800/50">
                             <span className="status-dot-active" />
@@ -128,98 +161,109 @@ function Dashboard({ currentUser, onLogout }) {
             {/* ── Main Content ────────────────────────────────────────────── */}
             <main className="max-w-[1600px] mx-auto px-6 py-6 space-y-6">
 
-                {/* Vital Cards Grid */}
-                <section>
-                    <h2 className="text-sm font-medium text-gray-500 mb-3 uppercase tracking-wider">
-                        Current Vitals
-                    </h2>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                        <VitalCard
-                            label="Heart Rate"
-                            value={latest?.heart_rate}
-                            unit="bpm"
-                            icon={Heart}
-                            color="text-vital-heart"
-                            bgColor="bg-vital-heart"
-                            alert={{ low: 50, high: 120 }}
-                        />
-                        <VitalCard
-                            label="SpO₂"
-                            value={latest?.spo2}
-                            unit="%"
-                            icon={Droplets}
-                            color="text-vital-spo2"
-                            bgColor="bg-vital-spo2"
-                            alert={{ low: 90, high: 101 }}
-                        />
-                        <VitalCard
-                            label="Temperature"
-                            value={latest?.temperature}
-                            unit="°C"
-                            icon={Thermometer}
-                            color="text-vital-temp"
-                            bgColor="bg-vital-temp"
-                            alert={{ low: 35.5, high: 38.0 }}
-                        />
-                        <VitalCard
-                            label="BP Systolic"
-                            value={latest?.blood_pressure_sys}
-                            unit="mmHg"
-                            icon={Activity}
-                            color="text-vital-bp"
-                            bgColor="bg-vital-bp"
-                            alert={{ low: 90, high: 140 }}
-                        />
-                        <VitalCard
-                            label="BP Diastolic"
-                            value={latest?.blood_pressure_dia}
-                            unit="mmHg"
-                            icon={Activity}
-                            color="text-purple-400"
-                            bgColor="bg-purple-500"
-                            alert={{ low: 60, high: 90 }}
-                        />
-                        <VitalCard
-                            label="Resp. Rate"
-                            value={latest?.respiratory_rate}
-                            unit="br/min"
-                            icon={Wind}
-                            color="text-vital-rr"
-                            bgColor="bg-vital-rr"
-                            alert={{ low: 10, high: 25 }}
-                        />
-                    </div>
-                </section>
+                {/* ── Monitor Tab ──────────────────────────────────────── */}
+                {activeTab === 'monitor' && (
+                    <>
+                        {/* Vital Cards Grid */}
+                        <section>
+                            <h2 className="text-sm font-medium text-gray-500 mb-3 uppercase tracking-wider">
+                                Current Vitals
+                            </h2>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                                <VitalCard
+                                    label="Heart Rate"
+                                    value={latest?.heart_rate}
+                                    unit="bpm"
+                                    icon={Heart}
+                                    color="text-vital-heart"
+                                    bgColor="bg-vital-heart"
+                                    alert={{ low: 50, high: 120 }}
+                                />
+                                <VitalCard
+                                    label="SpO₂"
+                                    value={latest?.spo2}
+                                    unit="%"
+                                    icon={Droplets}
+                                    color="text-vital-spo2"
+                                    bgColor="bg-vital-spo2"
+                                    alert={{ low: 90, high: 101 }}
+                                />
+                                <VitalCard
+                                    label="Temperature"
+                                    value={latest?.temperature}
+                                    unit="°C"
+                                    icon={Thermometer}
+                                    color="text-vital-temp"
+                                    bgColor="bg-vital-temp"
+                                    alert={{ low: 35.5, high: 38.0 }}
+                                />
+                                <VitalCard
+                                    label="BP Systolic"
+                                    value={latest?.blood_pressure_sys}
+                                    unit="mmHg"
+                                    icon={Activity}
+                                    color="text-vital-bp"
+                                    bgColor="bg-vital-bp"
+                                    alert={{ low: 90, high: 140 }}
+                                />
+                                <VitalCard
+                                    label="BP Diastolic"
+                                    value={latest?.blood_pressure_dia}
+                                    unit="mmHg"
+                                    icon={Activity}
+                                    color="text-purple-400"
+                                    bgColor="bg-purple-500"
+                                    alert={{ low: 60, high: 90 }}
+                                />
+                                <VitalCard
+                                    label="Resp. Rate"
+                                    value={latest?.respiratory_rate}
+                                    unit="br/min"
+                                    icon={Wind}
+                                    color="text-vital-rr"
+                                    bgColor="bg-vital-rr"
+                                    alert={{ low: 10, high: 25 }}
+                                />
+                            </div>
+                        </section>
 
-                {/* Chart + Sidebar Layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Chart Area */}
-                    <div className="lg:col-span-2 space-y-4">
-                        {/* Chart vital toggles */}
-                        <div className="flex flex-wrap gap-2">
-                            {vitalOptions.map(({ key, label }) => (
-                                <button
-                                    key={key}
-                                    onClick={() => toggleChartVital(key)}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 border ${chartVitals.includes(key)
-                                        ? 'bg-brand-600/20 border-brand-500/40 text-brand-300'
-                                        : 'bg-gray-900/40 border-gray-800/50 text-gray-500 hover:text-gray-300 hover:border-gray-700/60'
-                                        }`}
-                                >
-                                    {label}
-                                </button>
-                            ))}
+                        {/* Chart + Sidebar Layout */}
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            {/* Chart Area */}
+                            <div className="lg:col-span-2 space-y-4">
+                                {/* Chart vital toggles */}
+                                <div className="flex flex-wrap gap-2">
+                                    {vitalOptions.map(({ key, label }) => (
+                                        <button
+                                            key={key}
+                                            onClick={() => toggleChartVital(key)}
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 border ${chartVitals.includes(key)
+                                                ? 'bg-brand-600/20 border-brand-500/40 text-brand-300'
+                                                : 'bg-gray-900/40 border-gray-800/50 text-gray-500 hover:text-gray-300 hover:border-gray-700/60'
+                                                }`}
+                                        >
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <VitalChart data={streamData} visibleVitals={chartVitals} height={380} />
+                            </div>
+
+                            {/* Sidebar */}
+                            <div className="space-y-6">
+                                <PatientInfo patient={patient} loading={patientLoading} />
+                                <SystemStatus status={status} loading={systemLoading} />
+                            </div>
                         </div>
+                    </>
+                )}
 
-                        <VitalChart data={streamData} visibleVitals={chartVitals} height={380} />
-                    </div>
+                {/* ── History Tab ──────────────────────────────────────── */}
+                {activeTab === 'history' && <HistoryDashboard />}
 
-                    {/* Sidebar */}
-                    <div className="space-y-6">
-                        <PatientInfo patient={patient} loading={patientLoading} />
-                        <SystemStatus status={status} loading={systemLoading} />
-                    </div>
-                </div>
+                {/* ── Alerts Tab ───────────────────────────────────────── */}
+                {activeTab === 'alerts' && <AlertsPanel />}
             </main>
 
             {/* ── Footer ──────────────────────────────────────────────────── */}

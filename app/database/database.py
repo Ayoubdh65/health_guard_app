@@ -43,5 +43,5 @@ async def get_db() -> AsyncSession:
 async def init_db() -> None:
     """Create all tables on startup."""
     async with engine.begin() as conn:
-        from app.database.models import Patient, VitalReading, SyncLog  # noqa: F401
+        from app.database.models import Patient, VitalReading, SyncLog, Alert  # noqa: F401
         await conn.run_sync(Base.metadata.create_all)

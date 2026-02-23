@@ -67,6 +67,7 @@ class Patient(Base):
 
     # Relationships
     vital_readings = relationship("VitalReading", back_populates="patient", cascade="all, delete-orphan")
+    alerts = relationship("Alert", back_populates="patient", cascade="all, delete-orphan")
 
 
 # ── Vital Reading ───────────────────────────────────────────────────────────
@@ -111,3 +112,32 @@ class SyncLog(Base):
     status = Column(String(20), nullable=False)  # "success", "partial", "failed"
     error_message = Column(Text, nullable=True)
     duration_ms = Column(Integer, nullable=True)
+
+
+# ── Alert ───────────────────────────────────────────────────────────────────
+
+class Alert(Base):
+    """Anomaly alert generated when vitals breach safe thresholds."""
+
+    __tablename__ = "alerts"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    uuid = Column(String(36), unique=True, nullable=False, default=_generate_uuid)
+    patient_id = Column(Integer, ForeignKey("patients.id"), nullable=False)
+    reading_id = Column(Integer, ForeignKey("vital_readings.id"), nullable=True)
+    timestamp = Column(DateTime(timezone=True), default=_utcnow, index=True)
+
+    severity = Column(String(20), nullable=False)       # "warning" | "critical"
+    alert_type = Column(String(50), nullable=False)     # e.g. "high_heart_rate", "sensor_disconnect"
+    vital_name = Column(String(30), nullable=True)      # which vital triggered it
+    vital_value = Column(Float, nullable=True)           # actual reading value
+    threshold = Column(Float, nullable=True)             # the threshold that was breached
+    message = Column(Text, nullable=False)
+
+    acknowledged = Column(Boolean, default=False, index=True)
+    acknowledged_at = Column(DateTime(timezone=True), nullable=True)
+    acknowledged_by = Column(String(50), nullable=True)
+
+    # Relationships
+    patient = relationship("Patient", back_populates="alerts")
+    reading = relationship("VitalReading")

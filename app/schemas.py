@@ -131,3 +131,58 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserResponse
+
+
+# ── Alerts ──────────────────────────────────────────────────────────────────
+
+class AlertResponse(BaseModel):
+    id: int
+    uuid: str
+    patient_id: int
+    reading_id: Optional[int] = None
+    timestamp: datetime
+    severity: str
+    alert_type: str
+    vital_name: Optional[str] = None
+    vital_value: Optional[float] = None
+    threshold: Optional[float] = None
+    message: str
+    acknowledged: bool
+    acknowledged_at: Optional[datetime] = None
+    acknowledged_by: Optional[str] = None
+
+    model_config = {"from_attributes": True}
+
+
+class AlertsPaginated(BaseModel):
+    items: List[AlertResponse]
+    total: int
+    page: int
+    page_size: int
+    pages: int
+
+
+class AlertStats(BaseModel):
+    total: int
+    critical: int
+    warning: int
+    unacknowledged: int
+
+
+# ── Vital History ───────────────────────────────────────────────────────────
+
+class VitalHistoryPoint(BaseModel):
+    timestamp: datetime
+    heart_rate: Optional[float] = None
+    spo2: Optional[float] = None
+    temperature: Optional[float] = None
+    blood_pressure_sys: Optional[float] = None
+    blood_pressure_dia: Optional[float] = None
+    respiratory_rate: Optional[float] = None
+
+
+class VitalHistoryResponse(BaseModel):
+    points: List[VitalHistoryPoint]
+    period: str
+    granularity: str
+    total_readings: int

@@ -84,6 +84,23 @@ export const api = {
     getSystemStatus: () => request('/system/status'),
 
     triggerSync: () => request('/system/sync', { method: 'POST' }),
+
+    // Alerts
+    getAlerts: (page = 1, severity = '', acknowledged = '') => {
+        let url = `/alerts?page=${page}`;
+        if (severity) url += `&severity=${severity}`;
+        if (acknowledged !== '') url += `&acknowledged=${acknowledged}`;
+        return request(url);
+    },
+
+    getActiveAlerts: () => request('/alerts/active'),
+
+    acknowledgeAlert: (id) => request(`/alerts/${id}/acknowledge`, { method: 'POST' }),
+
+    getAlertStats: () => request('/alerts/stats'),
+
+    // History
+    getVitalHistory: (period = '24h') => request(`/vitals/history?period=${period}`),
 };
 
 /**

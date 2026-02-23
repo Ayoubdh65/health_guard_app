@@ -32,6 +32,20 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480  # 8 hours
     DEFAULT_ADMIN_PASSWORD: str = "admin"
 
+    # ── Alert Thresholds ────────────────────────────────────────────────
+    ALERT_HR_LOW: float = 50.0
+    ALERT_HR_HIGH: float = 120.0
+    ALERT_SPO2_LOW: float = 90.0
+    ALERT_TEMP_HIGH: float = 38.5
+    ALERT_TEMP_LOW: float = 35.0
+    ALERT_BP_SYS_HIGH: float = 140.0
+    ALERT_BP_SYS_LOW: float = 90.0
+    ALERT_BP_DIA_HIGH: float = 90.0
+    ALERT_BP_DIA_LOW: float = 60.0
+    ALERT_RR_HIGH: float = 25.0
+    ALERT_RR_LOW: float = 10.0
+    ALERT_COOLDOWN_SECONDS: int = 300
+
     # ── Server ──────────────────────────────────────────────────────────
     HOST: str = "0.0.0.0"
     PORT: int = 8000
