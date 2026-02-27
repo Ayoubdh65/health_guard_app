@@ -2,9 +2,12 @@
 HealthGuard Edge Node – Alert API Routes.
 """
 
+import asyncio
+import json
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy import select, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,6 +15,7 @@ from app.auth import get_current_user
 from app.database.database import get_db
 from app.database.models import User, Alert
 from app.schemas import AlertResponse, AlertsPaginated, AlertStats
+from app.sensors.alert_engine import subscribe_alerts, unsubscribe_alerts
 
 router = APIRouter(prefix="/api/alerts", tags=["Alerts"])
 
@@ -101,6 +105,39 @@ async def alert_stats(
     )
 
 
+@router.get("/stream")
+async def stream_alerts(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+):
+    """Server-Sent Events (SSE) endpoint for real-time alert notifications."""
+
+    async def event_generator():
+        q = subscribe_alerts()
+        try:
+            while True:
+                if await request.is_disconnected():
+                    break
+                try:
+                    alert_data = await asyncio.wait_for(q.get(), timeout=30)
+                    yield f"data: {json.dumps(alert_data)}\n\n"
+                except asyncio.TimeoutError:
+                    # Keepalive comment to prevent connection drop
+                    yield ": keepalive\n\n"
+        finally:
+            unsubscribe_alerts(q)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
 @router.post("/{alert_id}/acknowledge", response_model=AlertResponse)
 async def acknowledge_alert(
     alert_id: int,
@@ -128,3 +165,4 @@ async def acknowledge_alert(
     await db.flush()
     await db.refresh(alert)
     return AlertResponse.model_validate(alert)
+

@@ -5,6 +5,7 @@ Checks each sensor reading against configurable thresholds and generates
 Alert records when vitals are outside safe ranges or sensors disconnect.
 """
 
+import asyncio
 import logging
 from datetime import datetime, timezone, timedelta
 
@@ -17,6 +18,30 @@ from app.database.models import Alert
 from app.sensors.sensor_interface import SensorData
 
 logger = logging.getLogger(__name__)
+
+# ── In-process alert event bus ──────────────────────────────────────────────
+_alert_queues: list[asyncio.Queue] = []
+
+
+def subscribe_alerts() -> asyncio.Queue:
+    """Create a new queue that will receive alert dicts in real-time."""
+    q: asyncio.Queue = asyncio.Queue()
+    _alert_queues.append(q)
+    return q
+
+
+def unsubscribe_alerts(q: asyncio.Queue) -> None:
+    """Remove a subscriber queue."""
+    try:
+        _alert_queues.remove(q)
+    except ValueError:
+        pass
+
+
+def _broadcast_alert(alert_dict: dict) -> None:
+    """Push an alert dict to every connected subscriber."""
+    for q in _alert_queues:
+        q.put_nowait(alert_dict)
 
 
 # ── Threshold definitions ───────────────────────────────────────────────────
@@ -182,5 +207,20 @@ async def check_reading(
                     logger.warning(f"🚨 Alert: {alert_type} ({value} {rule['unit']})")
 
         await session.commit()
+
+        # Broadcast each new alert to SSE subscribers
+        for alert in alerts_created:
+            await session.refresh(alert)
+            _broadcast_alert({
+                "id": alert.id,
+                "severity": alert.severity,
+                "alert_type": alert.alert_type,
+                "vital_name": alert.vital_name,
+                "vital_value": alert.vital_value,
+                "threshold": alert.threshold,
+                "message": alert.message,
+                "timestamp": alert.timestamp.isoformat() if alert.timestamp else None,
+                "acknowledged": alert.acknowledged,
+            })
 
     return alerts_created

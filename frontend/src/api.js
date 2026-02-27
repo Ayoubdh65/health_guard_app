@@ -128,3 +128,29 @@ export function subscribeVitals(onData) {
     };
     return source;
 }
+
+/**
+ * Connect to SSE stream for real-time alert notifications.
+ * Pushes alert data as soon as the backend detects anomalies.
+ * Returns an EventSource instance; call .close() to disconnect.
+ */
+export function subscribeAlerts(onData) {
+    const token = getToken();
+    const url = token
+        ? `${BASE}/alerts/stream?token=${encodeURIComponent(token)}`
+        : `${BASE}/alerts/stream`;
+
+    const source = new EventSource(url);
+    source.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            onData(data);
+        } catch (err) {
+            console.error('Alert SSE parse error:', err);
+        }
+    };
+    source.onerror = () => {
+        console.warn('Alert SSE connection error, will auto-reconnect…');
+    };
+    return source;
+}

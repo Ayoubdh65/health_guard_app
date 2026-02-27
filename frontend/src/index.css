@@ -16,18 +16,31 @@
   }
 
   /* Custom scrollbar */
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
 }
 
 @layer components {
   .glass-card {
     @apply bg-gray-900/60 backdrop-blur-xl border border-gray-800/50 rounded-2xl;
     box-shadow:
-      0 0 0 1px rgba(255,255,255,0.03) inset,
-      0 4px 30px rgba(0,0,0,0.3);
+      0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+      0 4px 30px rgba(0, 0, 0, 0.3);
   }
 
   .glass-card-hover {
@@ -37,8 +50,8 @@
   .glass-card-hover:hover {
     @apply border-gray-700/60;
     box-shadow:
-      0 0 0 1px rgba(255,255,255,0.05) inset,
-      0 8px 40px rgba(0,0,0,0.4),
+      0 0 0 1px rgba(255, 255, 255, 0.05) inset,
+      0 8px 40px rgba(0, 0, 0, 0.4),
       0 0 20px rgba(var(--color-brand), 0.05);
     transform: translateY(-2px);
   }
@@ -58,8 +71,7 @@
 
   /* ── Navigation tabs ──────────────────────────────────── */
   .nav-tab {
-    @apply relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium
-           text-gray-500 transition-all duration-200 cursor-pointer;
+    @apply relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-gray-500 transition-all duration-200 cursor-pointer;
   }
 
   .nav-tab:hover {
@@ -73,28 +85,48 @@
 
   /* ── Alert badge ──────────────────────────────────────── */
   .badge-count {
-    @apply inline-flex items-center justify-center min-w-[18px] h-[18px]
-           px-1 rounded-full text-[10px] font-bold leading-none
-           bg-red-500 text-white;
+    @apply inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold leading-none bg-red-500 text-white;
     animation: badge-pop 0.3s ease-out;
   }
 
   @keyframes badge-pop {
-    0%   { transform: scale(0); }
-    50%  { transform: scale(1.2); }
-    100% { transform: scale(1); }
+    0% {
+      transform: scale(0);
+    }
+
+    50% {
+      transform: scale(1.2);
+    }
+
+    100% {
+      transform: scale(1);
+    }
   }
 }
 
 /* ── Animations ─────────────────────────────────────────── */
 @keyframes fade-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slide-up {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-fade-in {
@@ -103,4 +135,72 @@
 
 .animate-slide-up {
   animation: slide-up 0.4s ease-out;
+}
+
+/* ── Toast Notifications ───────────────────────────────── */
+.toast-container {
+  position: fixed;
+  top: 80px;
+  /* below header */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 28rem;
+  padding: 0 1rem;
+  pointer-events: none;
+}
+
+.toast-notification {
+  pointer-events: auto;
+}
+
+.toast-enter {
+  animation: toast-slide-down 0.4s cubic-bezier(0.21, 1.02, 0.73, 1) forwards;
+}
+
+.toast-exit {
+  animation: toast-fade-out 0.4s ease-in forwards;
+}
+
+@keyframes toast-slide-down {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes toast-fade-out {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+}
+
+.toast-progress {
+  animation: toast-countdown 10s linear forwards;
+  transform-origin: left;
+}
+
+@keyframes toast-countdown {
+  from {
+    transform: scaleX(1);
+  }
+
+  to {
+    transform: scaleX(0);
+  }
 }

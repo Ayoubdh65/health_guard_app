@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     Heart,
     Droplets,
@@ -20,7 +20,8 @@ import PatientInfo from './components/PatientInfo';
 import SystemStatus from './components/SystemStatus';
 import AlertsPanel from './components/AlertsPanel';
 import HistoryDashboard from './components/HistoryDashboard';
-import { getToken, getStoredUser, clearAuth } from './api';
+import AlertToast from './components/AlertToast';
+import { getToken, getStoredUser, clearAuth, subscribeAlerts } from './api';
 import {
     useLatestVital,
     useVitalStream,
@@ -79,6 +80,28 @@ function Dashboard({ currentUser, onLogout }) {
     const [activeTab, setActiveTab] = useState('monitor');
     const [chartVitals, setChartVitals] = useState(['heart_rate', 'spo2']);
 
+    // ── Toast notification state ────────────────────────────────────────
+    const [toasts, setToasts] = useState([]);
+    const toastIdRef = useRef(0);
+    const MAX_TOASTS = 5;
+
+    // Subscribe to real-time alert SSE stream
+    useEffect(() => {
+        const source = subscribeAlerts((alertData) => {
+            toastIdRef.current += 1;
+            const toast = { ...alertData, _toastId: toastIdRef.current };
+            setToasts((prev) => {
+                const next = [toast, ...prev];
+                return next.length > MAX_TOASTS ? next.slice(0, MAX_TOASTS) : next;
+            });
+        });
+        return () => source.close();
+    }, []);
+
+    const dismissToast = useCallback((toastId) => {
+        setToasts((prev) => prev.filter((t) => t._toastId !== toastId));
+    }, []);
+
     const vitalOptions = [
         { key: 'heart_rate', label: 'HR' },
         { key: 'spo2', label: 'SpO₂' },
@@ -95,6 +118,8 @@ function Dashboard({ currentUser, onLogout }) {
 
     return (
         <div className="min-h-screen">
+            {/* ── Toast notifications (visible on all tabs) ──────────── */}
+            <AlertToast toasts={toasts} onDismiss={dismissToast} />
             {/* ── Header ──────────────────────────────────────────────────── */}
             <header className="border-b border-gray-800/50 bg-gray-950/80 backdrop-blur-xl sticky top-0 z-50">
                 <div className="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
