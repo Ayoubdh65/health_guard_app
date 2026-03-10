@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { AlertTriangle, ShieldAlert, CheckCircle, X, Clock, Bell } from 'lucide-react';
+import { AlertTriangle, ShieldAlert, CheckCircle, X, Clock } from 'lucide-react';
 import { api } from '../api';
+import { formatThresholdExplanation, friendlySeverityLabel, getVitalStatus } from '../vitalUtils';
 
 const SEVERITY_CONFIG = {
     critical: {
@@ -30,10 +31,9 @@ function playAlertSound(severity = 'warning') {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const isCritical = severity === 'critical';
 
-        // Play a sequence of short tones
         const frequencies = isCritical
-            ? [880, 1100, 880]     // urgent 3-tone
-            : [660, 880];          // gentle 2-tone ascending
+            ? [880, 1100, 880]
+            : [660, 880];
 
         frequencies.forEach((freq, i) => {
             const osc = ctx.createOscillator();
@@ -56,7 +56,6 @@ function playAlertSound(severity = 'warning') {
             osc.stop(start + duration);
         });
 
-        // Close context after sounds finish
         setTimeout(() => ctx.close(), 1000);
     } catch {
         // Audio not supported or blocked — fail silently
@@ -82,12 +81,30 @@ function Toast({ alert, onDismiss, onAcknowledge }) {
     const [acknowledging, setAcknowledging] = useState(false);
     const timerRef = useRef(null);
 
-    // Auto-dismiss after 10 seconds
+    // Build plain-language threshold explanation
+    const thresholdLine = alert.vital_name
+        ? formatThresholdExplanation(
+            alert.vital_name,
+            alert.vital_value,
+            alert.unit ?? '',
+            alert.threshold
+                ? null   // if only a single threshold number is stored, let the utility use meta defaults
+                : null
+        )
+        : null;
+
+    // Get advice from vitalUtils if we have enough info
+    const vitalStatus = alert.vital_name
+        ? getVitalStatus(alert.vital_value, null, alert.vital_name)
+        : null;
+    const advice = vitalStatus?.advice ?? null;
+
+    // Auto-dismiss after 12 seconds
     useEffect(() => {
         timerRef.current = setTimeout(() => {
             setExiting(true);
             setTimeout(() => onDismiss(alert._toastId), 400);
-        }, 10000);
+        }, 12000);
         return () => clearTimeout(timerRef.current);
     }, [alert._toastId, onDismiss]);
 
@@ -123,30 +140,43 @@ function Toast({ alert, onDismiss, onAcknowledge }) {
             <div className="p-4">
                 <div className="flex items-start gap-3">
                     {/* Severity icon with pulse */}
-                    <div className={`p-2 rounded-xl bg-gray-900/50 mt-0.5 relative`}>
+                    <div className="p-2 rounded-xl bg-gray-900/50 mt-0.5 relative shrink-0">
                         <SeverityIcon className={`w-5 h-5 ${config.text}`} />
-                        <span className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ${config.bar} animate-pulse`} />
+                        <span
+                            className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ${config.bar} animate-pulse`}
+                        />
                     </div>
 
                     {/* Content */}
                     <div className="flex-1 min-w-0">
+                        {/* Friendly severity label + timestamp */}
                         <div className="flex items-center gap-2 mb-1">
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${config.badge}`}>
-                                {alert.severity}
+                            <span
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide ${config.badge}`}
+                            >
+                                {friendlySeverityLabel(alert.severity)}
                             </span>
                             <span className="text-[11px] text-gray-500 font-mono flex items-center gap-1">
                                 <Clock className="w-3 h-3" />
                                 {timeAgo(alert.timestamp)}
                             </span>
                         </div>
+
+                        {/* Alert message */}
                         <p className="text-sm text-gray-200 leading-snug">{alert.message}</p>
-                        {alert.vital_name && (
-                            <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500">
-                                <span>
-                                    {alert.vital_name}: <strong className="text-gray-300">{alert.vital_value}</strong>
-                                </span>
-                                {alert.threshold && <span>Threshold: {alert.threshold}</span>}
-                            </div>
+
+                        {/* Plain-language reading context */}
+                        {thresholdLine && (
+                            <p className="text-xs text-gray-400 mt-1 leading-snug">
+                                {thresholdLine}
+                            </p>
+                        )}
+
+                        {/* Helpful advice */}
+                        {advice && (
+                            <p className="text-[11px] text-gray-500 italic mt-1.5 leading-snug border-t border-white/5 pt-1.5">
+                                💡 {advice}
+                            </p>
                         )}
                     </div>
 
@@ -163,7 +193,9 @@ function Toast({ alert, onDismiss, onAcknowledge }) {
                                 title="Acknowledge"
                             >
                                 <CheckCircle className="w-3.5 h-3.5" />
-                                <span className="hidden sm:inline">{acknowledging ? 'Done' : 'Ack'}</span>
+                                <span className="hidden sm:inline">
+                                    {acknowledging ? 'Done' : 'Got it'}
+                                </span>
                             </button>
                         )}
                         <button
@@ -191,7 +223,6 @@ export default function AlertToast({ toasts, onDismiss, onAcknowledge }) {
 
         const newToasts = toasts.filter((t) => !seenIdsRef.current.has(t._toastId));
         if (newToasts.length > 0) {
-            // Use the highest severity from the batch
             const hasCritical = newToasts.some((t) => t.severity === 'critical');
             playAlertSound(hasCritical ? 'critical' : 'warning');
             newToasts.forEach((t) => seenIdsRef.current.add(t._toastId));

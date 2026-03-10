@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { AlertTriangle, Bell, CheckCircle, Clock, Shield, ShieldAlert, Filter } from 'lucide-react';
+import { Bell, CheckCircle, Clock, Shield, ShieldAlert, AlertTriangle, Filter } from 'lucide-react';
 import { api } from '../api';
 import { useAlerts, useAlertStats } from '../hooks/useHealthData';
+import { formatThresholdExplanation, friendlySeverityLabel, getVitalStatus } from '../vitalUtils';
 
 const SEVERITY_CONFIG = {
     critical: {
@@ -36,51 +37,77 @@ function AlertCard({ alert, onAcknowledge, acknowledging }) {
     const config = SEVERITY_CONFIG[alert.severity] || SEVERITY_CONFIG.warning;
     const SeverityIcon = config.icon;
 
+    // Plain-language threshold explanation
+    const thresholdLine = alert.vital_name
+        ? formatThresholdExplanation(
+            alert.vital_name,
+            alert.vital_value,
+            alert.unit ?? '',
+            null
+        )
+        : null;
+
+    // Advice from vitalUtils
+    const vitalStatus = alert.vital_name
+        ? getVitalStatus(alert.vital_value, null, alert.vital_name)
+        : null;
+    const advice = vitalStatus?.advice ?? null;
+
     return (
         <div className={`glass-card p-4 ${config.border} border animate-fade-in`}>
             <div className="flex items-start gap-3">
-                <div className={`p-2 rounded-xl ${config.bg} mt-0.5`}>
+                <div className={`p-2 rounded-xl ${config.bg} mt-0.5 shrink-0`}>
                     <SeverityIcon className={`w-5 h-5 ${config.text}`} />
                 </div>
+
                 <div className="flex-1 min-w-0">
+                    {/* Header row: friendly severity + time */}
                     <div className="flex items-center gap-2 mb-1">
-                        <span className={`vital-badge ${config.badge}`}>
-                            {alert.severity.toUpperCase()}
+                        <span className={`vital-badge ${config.badge} text-[10px] font-semibold`}>
+                            <span className={`status-dot ${config.dot}`} />
+                            {friendlySeverityLabel(alert.severity)}
                         </span>
                         <span className="text-xs text-gray-500 font-mono flex items-center gap-1">
                             <Clock className="w-3 h-3" />
                             {timeAgo(alert.timestamp)}
                         </span>
                     </div>
+
+                    {/* Alert message */}
                     <p className="text-sm text-gray-200 mb-1">{alert.message}</p>
-                    <div className="flex items-center gap-3 text-xs text-gray-500">
-                        {alert.vital_name && (
-                            <span>
-                                {alert.vital_name}: <strong className="text-gray-300">{alert.vital_value}</strong>
-                            </span>
-                        )}
-                        {alert.threshold && (
-                            <span>Threshold: {alert.threshold}</span>
-                        )}
-                    </div>
+
+                    {/* Plain-language reading context */}
+                    {thresholdLine && (
+                        <p className="text-xs text-gray-400 leading-snug mb-1">
+                            {thresholdLine}
+                        </p>
+                    )}
+
+                    {/* Short advice */}
+                    {advice && (
+                        <p className="text-[11px] text-gray-500 italic leading-snug border-t border-white/5 pt-1.5 mt-1.5">
+                            💡 {advice}
+                        </p>
+                    )}
                 </div>
-                {!alert.acknowledged && (
+
+                {/* Acknowledge / already-acked indicator */}
+                {!alert.acknowledged ? (
                     <button
                         onClick={() => onAcknowledge(alert.id)}
                         disabled={acknowledging === alert.id}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg shrink-0
                             bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20
                             hover:border-emerald-500/40 text-emerald-400 text-xs font-medium
                             transition-all duration-200 disabled:opacity-50 whitespace-nowrap"
                     >
                         <CheckCircle className="w-3.5 h-3.5" />
-                        {acknowledging === alert.id ? 'Done' : 'Acknowledge'}
+                        {acknowledging === alert.id ? 'Done' : 'Got it'}
                     </button>
-                )}
-                {alert.acknowledged && (
-                    <div className="flex items-center gap-1 text-xs text-emerald-500/60">
+                ) : (
+                    <div className="flex items-center gap-1 text-xs text-emerald-500/60 shrink-0">
                         <CheckCircle className="w-3.5 h-3.5" />
-                        <span>Ack</span>
+                        <span>Noted</span>
                     </div>
                 )}
             </div>
@@ -127,14 +154,15 @@ export default function AlertsPanel() {
 
     const filters = [
         { key: 'all', label: 'All' },
-        { key: 'critical', label: 'Critical' },
-        { key: 'warning', label: 'Warning' },
-        { key: 'acknowledged', label: 'Acknowledged' },
+        { key: 'critical', label: '⚡ Urgent' },
+        { key: 'warning', label: '⚠️ Attention' },
+        { key: 'acknowledged', label: '✅ Noted' },
     ];
 
     return (
         <div className="space-y-6 animate-fade-in">
-            {/* Stats summary */}
+
+            {/* ── Summary stats ──────────────────────────────────────────── */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="glass-card p-4 text-center">
                     <div className="text-2xl font-bold text-white">{stats.total}</div>
@@ -142,24 +170,24 @@ export default function AlertsPanel() {
                 </div>
                 <div className="glass-card p-4 text-center border border-red-500/20">
                     <div className="text-2xl font-bold text-red-400">{stats.critical}</div>
-                    <div className="text-xs text-gray-500 mt-1">Critical</div>
+                    <div className="text-xs text-gray-500 mt-1">⚡ Urgent</div>
                 </div>
                 <div className="glass-card p-4 text-center border border-amber-500/20">
                     <div className="text-2xl font-bold text-amber-400">{stats.warning}</div>
-                    <div className="text-xs text-gray-500 mt-1">Warning</div>
+                    <div className="text-xs text-gray-500 mt-1">⚠️ Needs Attention</div>
                 </div>
                 <div className="glass-card p-4 text-center border border-brand-500/20">
                     <div className="text-2xl font-bold text-brand-400">{stats.unacknowledged}</div>
-                    <div className="text-xs text-gray-500 mt-1">Active</div>
+                    <div className="text-xs text-gray-500 mt-1">Not Yet Noted</div>
                 </div>
             </div>
 
-            {/* Active alerts banner */}
+            {/* ── Active alerts banner ───────────────────────────────────── */}
             {alerts.length > 0 && filter === 'all' && (
                 <div className="glass-card p-4 border border-red-500/20">
                     <h3 className="text-sm font-semibold text-red-400 flex items-center gap-2 mb-3">
                         <Bell className="w-4 h-4" />
-                        Active Alerts ({alerts.length})
+                        Active Alerts ({alerts.length}) — Needs your attention
                     </h3>
                     <div className="space-y-2">
                         {alerts.slice(0, 5).map((alert) => (
@@ -174,8 +202,8 @@ export default function AlertsPanel() {
                 </div>
             )}
 
-            {/* Filter bar */}
-            <div className="flex items-center gap-2">
+            {/* ── Filter bar ─────────────────────────────────────────────── */}
+            <div className="flex items-center gap-2 flex-wrap">
                 <Filter className="w-4 h-4 text-gray-500" />
                 {filters.map(({ key, label }) => (
                     <button
@@ -191,7 +219,7 @@ export default function AlertsPanel() {
                 ))}
             </div>
 
-            {/* Alert list */}
+            {/* ── Alert list ─────────────────────────────────────────────── */}
             <div className="space-y-2">
                 {allLoading ? (
                     <div className="space-y-2">
@@ -205,8 +233,8 @@ export default function AlertsPanel() {
                 ) : allAlerts.length === 0 ? (
                     <div className="glass-card p-12 text-center">
                         <Shield className="w-12 h-12 text-emerald-500/30 mx-auto mb-3" />
-                        <p className="text-gray-500 text-sm">No alerts found</p>
-                        <p className="text-gray-600 text-xs mt-1">All vitals within safe ranges</p>
+                        <p className="text-gray-400 text-sm font-medium">All clear! 🎉</p>
+                        <p className="text-gray-600 text-xs mt-1">All vital signs are within safe ranges</p>
                     </div>
                 ) : (
                     allAlerts.map((alert) => (
@@ -220,13 +248,13 @@ export default function AlertsPanel() {
                 )}
             </div>
 
-            {/* Pagination */}
+            {/* ── Pagination ─────────────────────────────────────────────── */}
             {totalPages > 1 && (
                 <div className="flex items-center justify-center gap-2">
                     <button
                         onClick={() => loadAllAlerts(currentPage - 1)}
                         disabled={currentPage <= 1}
-                        className="px-3 py-1.5 rounded-lg text-xs bg-white/[0.02] text-gray-400 
+                        className="px-3 py-1.5 rounded-lg text-xs bg-white/[0.02] text-gray-400
                             border border-white/[0.04] hover:border-white/[0.08] disabled:opacity-30
                             transition-all"
                     >
@@ -238,7 +266,7 @@ export default function AlertsPanel() {
                     <button
                         onClick={() => loadAllAlerts(currentPage + 1)}
                         disabled={currentPage >= totalPages}
-                        className="px-3 py-1.5 rounded-lg text-xs bg-white/[0.02] text-gray-400 
+                        className="px-3 py-1.5 rounded-lg text-xs bg-white/[0.02] text-gray-400
                             border border-white/[0.04] hover:border-white/[0.08] disabled:opacity-30
                             transition-all"
                     >

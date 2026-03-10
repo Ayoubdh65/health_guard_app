@@ -202,7 +202,8 @@ function Dashboard({ currentUser, onLogout }) {
                                     icon={Heart}
                                     color="text-vital-heart"
                                     bgColor="bg-vital-heart"
-                                    alert={{ low: 50, high: 120 }}
+                                    alert={{ low: 60, high: 100 }}
+                                    vitalKey="heart_rate"
                                 />
                                 <VitalCard
                                     label="SpO₂"
@@ -211,7 +212,8 @@ function Dashboard({ currentUser, onLogout }) {
                                     icon={Droplets}
                                     color="text-vital-spo2"
                                     bgColor="bg-vital-spo2"
-                                    alert={{ low: 90, high: 101 }}
+                                    alert={{ low: 95, high: 100 }}
+                                    vitalKey="spo2"
                                 />
                                 <VitalCard
                                     label="Temperature"
@@ -220,7 +222,8 @@ function Dashboard({ currentUser, onLogout }) {
                                     icon={Thermometer}
                                     color="text-vital-temp"
                                     bgColor="bg-vital-temp"
-                                    alert={{ low: 35.5, high: 38.0 }}
+                                    alert={{ low: 36.1, high: 37.2 }}
+                                    vitalKey="temperature"
                                 />
                                 <VitalCard
                                     label="BP Systolic"
@@ -229,7 +232,8 @@ function Dashboard({ currentUser, onLogout }) {
                                     icon={Activity}
                                     color="text-vital-bp"
                                     bgColor="bg-vital-bp"
-                                    alert={{ low: 90, high: 140 }}
+                                    alert={{ low: 90, high: 120 }}
+                                    vitalKey="blood_pressure_sys"
                                 />
                                 <VitalCard
                                     label="BP Diastolic"
@@ -238,7 +242,8 @@ function Dashboard({ currentUser, onLogout }) {
                                     icon={Activity}
                                     color="text-purple-400"
                                     bgColor="bg-purple-500"
-                                    alert={{ low: 60, high: 90 }}
+                                    alert={{ low: 60, high: 80 }}
+                                    vitalKey="blood_pressure_dia"
                                 />
                                 <VitalCard
                                     label="Resp. Rate"
@@ -247,7 +252,8 @@ function Dashboard({ currentUser, onLogout }) {
                                     icon={Wind}
                                     color="text-vital-rr"
                                     bgColor="bg-vital-rr"
-                                    alert={{ low: 10, high: 25 }}
+                                    alert={{ low: 12, high: 20 }}
+                                    vitalKey="respiratory_rate"
                                 />
                             </div>
                         </section>
