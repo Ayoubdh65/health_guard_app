@@ -2,8 +2,7 @@
 HealthGuard Edge Node – Real PPG / I2C Sensor Reader (Stub).
 
 This module provides the interface for reading from a real PPG heart rate
-sensor connected via I2C on a Raspberry Pi. It will raise a clear error
-if the required hardware libraries are not installed.
+sensor connected via I2C on a Raspberry Pi.
 """
 
 import asyncio
@@ -56,18 +55,11 @@ class PPGSensor(SensorReader):
             raise RuntimeError(f"Sensor not responding: {exc}")
 
     async def read(self) -> SensorData:
-        """
-        Read vitals from the hardware sensor.
-
-        NOTE: This is a simplified stub. A production implementation would
-        use the full MAX30102 driver to capture red/IR LED data, compute
-        heart rate via peak detection, and derive SpO₂ from the R-value.
-        """
+        
         if not self._available or self._bus is None:
             raise RuntimeError("Sensor not initialized")
 
-        # Placeholder – in production replace with actual register reads
-        # and signal-processing pipeline.
+    
         await asyncio.sleep(0.5)  # simulate sampling time
 
         logger.warning(
