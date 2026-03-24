@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Shield, Loader2, AlertCircle } from 'lucide-react';
+import { Shield, Loader2, AlertCircle, Sun, Moon } from 'lucide-react';
+import { useTheme } from './ThemeProvider';
 
 export default function LoginPage({ onLogin }) {
+    const { theme, toggleTheme } = useTheme();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -43,21 +45,30 @@ export default function LoginPage({ onLogin }) {
                 <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-emerald-500/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
             </div>
 
+            {/* Theme toggle — top right */}
+            <button
+                onClick={toggleTheme}
+                className="fixed top-5 right-5 z-50 p-2.5 rounded-xl text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 bg-white/80 dark:bg-gray-900/60 border border-gray-200/50 dark:border-gray-800/50 backdrop-blur-xl hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-200 shadow-sm"
+                title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+                {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+
             <div className="glass-card w-full max-w-md p-8 relative z-10">
                 {/* Header */}
                 <div className="text-center mb-8">
                     <div className="inline-flex p-3 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 shadow-lg shadow-brand-500/25 mb-4">
                         <Shield className="w-8 h-8 text-white" />
                     </div>
-                    <h1 className="text-2xl font-bold text-white tracking-tight">
-                        Health<span className="text-brand-400">Guard</span>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
+                        Health<span className="text-brand-500 dark:text-brand-400">Guard</span>
                     </h1>
                     <p className="text-sm text-gray-500 mt-1">Edge Node Monitor</p>
                 </div>
 
                 {/* Error Banner */}
                 {error && (
-                    <div className="flex items-center gap-2 p-3 mb-6 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                    <div className="flex items-center gap-2 p-3 mb-6 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 dark:text-red-400 text-sm">
                         <AlertCircle className="w-4 h-4 shrink-0" />
                         <span>{error}</span>
                     </div>
@@ -66,7 +77,7 @@ export default function LoginPage({ onLogin }) {
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="space-y-5">
                     <div>
-                        <label htmlFor="username" className="block text-sm font-medium text-gray-400 mb-1.5">
+                        <label htmlFor="username" className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1.5">
                             Username
                         </label>
                         <input
@@ -75,14 +86,14 @@ export default function LoginPage({ onLogin }) {
                             required
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
-                            className="w-full px-4 py-2.5 rounded-xl bg-gray-900/60 border border-gray-800/60 text-white placeholder-gray-600 focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/25 transition-all duration-200"
+                            className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800/60 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/25 transition-all duration-200"
                             placeholder="Enter username"
                             autoComplete="username"
                         />
                     </div>
 
                     <div>
-                        <label htmlFor="password" className="block text-sm font-medium text-gray-400 mb-1.5">
+                        <label htmlFor="password" className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1.5">
                             Password
                         </label>
                         <input
@@ -91,7 +102,7 @@ export default function LoginPage({ onLogin }) {
                             required
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="w-full px-4 py-2.5 rounded-xl bg-gray-900/60 border border-gray-800/60 text-white placeholder-gray-600 focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/25 transition-all duration-200"
+                            className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800/60 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/25 transition-all duration-200"
                             placeholder="Enter password"
                             autoComplete="current-password"
                         />
@@ -113,7 +124,7 @@ export default function LoginPage({ onLogin }) {
                     </button>
                 </form>
 
-                <p className="text-center text-xs text-gray-700 mt-6">
+                <p className="text-center text-xs text-gray-400 dark:text-gray-700 mt-6">
                     Secured connection • Raspberry Pi 8GB
                 </p>
             </div>

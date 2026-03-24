@@ -5,6 +5,7 @@ import {
 } from 'recharts';
 import { Clock, TrendingUp, BarChart3 } from 'lucide-react';
 import { useVitalHistory, useVitalStats } from '../hooks/useHealthData';
+import { useTheme } from './ThemeProvider';
 
 const VITAL_COLORS = {
     heart_rate: { stroke: '#ef4444', fill: '#ef444420', label: 'Heart Rate', unit: 'bpm' },
@@ -40,14 +41,14 @@ const CustomTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null;
     return (
         <div className="glass-card p-3 text-xs space-y-1">
-            <p className="text-gray-400 font-mono">{formatDate(label)}</p>
+            <p className="text-gray-500 dark:text-gray-400 font-mono">{formatDate(label)}</p>
             {payload.map((entry) => (
                 <div key={entry.dataKey} className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.stroke }} />
-                    <span className="text-gray-300">
+                    <span className="text-gray-600 dark:text-gray-300">
                         {VITAL_COLORS[entry.dataKey]?.label || entry.dataKey}:
                     </span>
-                    <span className="font-bold text-white">
+                    <span className="font-bold text-gray-900 dark:text-white">
                         {entry.value} {VITAL_COLORS[entry.dataKey]?.unit || ''}
                     </span>
                 </div>
@@ -63,13 +64,20 @@ function StatCard({ label, value, unit, color }) {
                 {value ?? '—'}
             </div>
             <div className="text-xs text-gray-500 mt-0.5">
-                {label} {unit && <span className="text-gray-600">({unit})</span>}
+                {label} {unit && <span className="text-gray-400 dark:text-gray-600">({unit})</span>}
             </div>
         </div>
     );
 }
 
 export default function HistoryDashboard() {
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
+
+    const gridColor = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.06)';
+    const axisColor = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)';
+    const tickColor = isDark ? '#6b7280' : '#9ca3af';
+
     const [period, setPeriod] = useState('24h');
     const [visibleVitals, setVisibleVitals] = useState(['heart_rate', 'spo2']);
 
@@ -100,9 +108,9 @@ export default function HistoryDashboard() {
             {/* Period selector */}
             <div className="glass-card p-4">
                 <div className="flex items-center justify-between flex-wrap gap-3">
-                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                         <div className="p-2 rounded-xl bg-brand-500/10">
-                            <TrendingUp className="w-5 h-5 text-brand-400" />
+                            <TrendingUp className="w-5 h-5 text-brand-500 dark:text-brand-400" />
                         </div>
                         Vital Trends
                     </h3>
@@ -113,8 +121,8 @@ export default function HistoryDashboard() {
                                 key={key}
                                 onClick={() => setPeriod(key)}
                                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${period === key
-                                    ? 'bg-brand-600/20 text-brand-300 border border-brand-500/30'
-                                    : 'bg-white/[0.02] text-gray-500 hover:text-gray-300 border border-white/[0.04]'
+                                    ? 'bg-brand-500/15 dark:bg-brand-600/20 text-brand-600 dark:text-brand-300 border border-brand-400/30 dark:border-brand-500/30'
+                                    : 'bg-gray-100/60 dark:bg-white/[0.02] text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 border border-gray-200/50 dark:border-white/[0.04]'
                                     }`}
                             >
                                 {label}
@@ -132,7 +140,7 @@ export default function HistoryDashboard() {
                         onClick={() => toggleVital(key)}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1.5 ${visibleVitals.includes(key)
                             ? 'border border-opacity-40'
-                            : 'bg-white/[0.02] text-gray-600 border border-white/[0.04]'
+                            : 'bg-gray-100/60 dark:bg-white/[0.02] text-gray-500 dark:text-gray-600 border border-gray-200/50 dark:border-white/[0.04]'
                             }`}
                         style={
                             visibleVitals.includes(key)
@@ -142,7 +150,7 @@ export default function HistoryDashboard() {
                     >
                         <span
                             className="w-2 h-2 rounded-full"
-                            style={{ backgroundColor: visibleVitals.includes(key) ? stroke : '#374151' }}
+                            style={{ backgroundColor: visibleVitals.includes(key) ? stroke : (isDark ? '#374151' : '#d1d5db') }}
                         />
                         {label}
                     </button>
@@ -159,11 +167,11 @@ export default function HistoryDashboard() {
                         </div>
                     </div>
                 ) : chartData.length === 0 ? (
-                    <div className="flex items-center justify-center text-gray-600" style={{ height: 400 }}>
+                    <div className="flex items-center justify-center text-gray-400 dark:text-gray-600" style={{ height: 400 }}>
                         <div className="text-center">
-                            <BarChart3 className="w-12 h-12 text-gray-700 mx-auto mb-3" />
+                            <BarChart3 className="w-12 h-12 text-gray-300 dark:text-gray-700 mx-auto mb-3" />
                             <p className="text-sm">No data for this period</p>
-                            <p className="text-xs text-gray-700 mt-1">Start collecting readings to see trends</p>
+                            <p className="text-xs text-gray-400 dark:text-gray-700 mt-1">Start collecting readings to see trends</p>
                         </div>
                     </div>
                 ) : (
@@ -183,24 +191,24 @@ export default function HistoryDashboard() {
                                         </linearGradient>
                                     ))}
                                 </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                                 <XAxis
                                     dataKey="time"
                                     tickFormatter={tickFormatter}
-                                    stroke="rgba(255,255,255,0.15)"
-                                    tick={{ fill: '#6b7280', fontSize: 11 }}
+                                    stroke={axisColor}
+                                    tick={{ fill: tickColor, fontSize: 11 }}
                                     interval="preserveStartEnd"
                                 />
                                 <YAxis
-                                    stroke="rgba(255,255,255,0.15)"
-                                    tick={{ fill: '#6b7280', fontSize: 11 }}
+                                    stroke={axisColor}
+                                    tick={{ fill: tickColor, fontSize: 11 }}
                                 />
                                 <Tooltip content={<CustomTooltip />} />
                                 <Legend
                                     verticalAlign="top"
                                     height={36}
                                     formatter={(value) => (
-                                        <span className="text-xs text-gray-400">
+                                        <span className="text-xs text-gray-500 dark:text-gray-400">
                                             {VITAL_COLORS[value]?.label || value}
                                         </span>
                                     )}
@@ -228,7 +236,7 @@ export default function HistoryDashboard() {
             {/* Stats cards */}
             {stats && !statsLoading && (
                 <div className="glass-card p-4">
-                    <h4 className="text-sm font-semibold text-gray-400 mb-3 flex items-center gap-2">
+                    <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-2">
                         <BarChart3 className="w-4 h-4" />
                         Period Statistics
                     </h4>

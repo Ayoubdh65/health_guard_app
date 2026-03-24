@@ -9,8 +9,8 @@ const SEVERITY_CONFIG = {
         gradient: 'from-red-500/20 to-red-900/10',
         border: 'border-red-500/40',
         glow: 'shadow-red-500/20',
-        text: 'text-red-400',
-        badge: 'bg-red-500/20 text-red-400',
+        text: 'text-red-500 dark:text-red-400',
+        badge: 'bg-red-500/20 text-red-500 dark:text-red-400',
         bar: 'bg-red-500',
     },
     warning: {
@@ -18,8 +18,8 @@ const SEVERITY_CONFIG = {
         gradient: 'from-amber-500/20 to-amber-900/10',
         border: 'border-amber-500/40',
         glow: 'shadow-amber-500/20',
-        text: 'text-amber-400',
-        badge: 'bg-amber-500/20 text-amber-400',
+        text: 'text-amber-500 dark:text-amber-400',
+        badge: 'bg-amber-500/20 text-amber-500 dark:text-amber-400',
         bar: 'bg-amber-500',
     },
 };
@@ -140,7 +140,7 @@ function Toast({ alert, onDismiss, onAcknowledge }) {
             <div className="p-4">
                 <div className="flex items-start gap-3">
                     {/* Severity icon with pulse */}
-                    <div className="p-2 rounded-xl bg-gray-900/50 mt-0.5 relative shrink-0">
+                    <div className="p-2 rounded-xl bg-white/10 dark:bg-gray-900/50 mt-0.5 relative shrink-0">
                         <SeverityIcon className={`w-5 h-5 ${config.text}`} />
                         <span
                             className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ${config.bar} animate-pulse`}
@@ -163,18 +163,18 @@ function Toast({ alert, onDismiss, onAcknowledge }) {
                         </div>
 
                         {/* Alert message */}
-                        <p className="text-sm text-gray-200 leading-snug">{alert.message}</p>
+                        <p className="text-sm text-gray-700 dark:text-gray-200 leading-snug">{alert.message}</p>
 
                         {/* Plain-language reading context */}
                         {thresholdLine && (
-                            <p className="text-xs text-gray-400 mt-1 leading-snug">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-snug">
                                 {thresholdLine}
                             </p>
                         )}
 
                         {/* Helpful advice */}
                         {advice && (
-                            <p className="text-[11px] text-gray-500 italic mt-1.5 leading-snug border-t border-white/5 pt-1.5">
+                            <p className="text-[11px] text-gray-500 italic mt-1.5 leading-snug border-t border-gray-200/30 dark:border-white/5 pt-1.5">
                                 💡 {advice}
                             </p>
                         )}
@@ -188,7 +188,7 @@ function Toast({ alert, onDismiss, onAcknowledge }) {
                                 disabled={acknowledging}
                                 className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg
                                     bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20
-                                    hover:border-emerald-500/40 text-emerald-400 text-xs font-medium
+                                    hover:border-emerald-500/40 text-emerald-600 dark:text-emerald-400 text-xs font-medium
                                     transition-all duration-200 disabled:opacity-50"
                                 title="Acknowledge"
                             >
@@ -200,8 +200,8 @@ function Toast({ alert, onDismiss, onAcknowledge }) {
                         )}
                         <button
                             onClick={handleDismiss}
-                            className="p-1.5 rounded-lg text-gray-500 hover:text-gray-300
-                                hover:bg-white/5 transition-all duration-200"
+                            className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300
+                                hover:bg-gray-200/30 dark:hover:bg-white/5 transition-all duration-200"
                             title="Dismiss"
                         >
                             <X className="w-4 h-4" />

@@ -9,6 +9,7 @@ import {
     ResponsiveContainer,
     Legend,
 } from 'recharts';
+import { useTheme } from './ThemeProvider';
 
 const VITAL_COLORS = {
     heart_rate: { stroke: '#ef4444', fill: '#ef444420' },
@@ -38,12 +39,12 @@ const CustomTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null;
     return (
         <div className="glass-card p-3 text-xs space-y-1">
-            <p className="text-gray-400 font-mono">{formatTime(label)}</p>
+            <p className="text-gray-500 dark:text-gray-400 font-mono">{formatTime(label)}</p>
             {payload.map((entry) => (
                 <div key={entry.dataKey} className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.stroke }} />
-                    <span className="text-gray-300">{VITAL_LABELS[entry.dataKey] || entry.dataKey}:</span>
-                    <span className="font-bold text-white">{entry.value}</span>
+                    <span className="text-gray-600 dark:text-gray-300">{VITAL_LABELS[entry.dataKey] || entry.dataKey}:</span>
+                    <span className="font-bold text-gray-900 dark:text-white">{entry.value}</span>
                 </div>
             ))}
         </div>
@@ -63,6 +64,13 @@ export default function VitalChart({
     visibleVitals = ['heart_rate', 'spo2'],
     height = 350,
 }) {
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
+
+    const gridColor = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.06)';
+    const axisColor = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)';
+    const tickColor = isDark ? '#6b7280' : '#9ca3af';
+
     const chartData = useMemo(() => {
         return data.map((d) => ({
             ...d,
@@ -73,18 +81,18 @@ export default function VitalChart({
     return (
         <div className="glass-card p-6 animate-fade-in">
             <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-white">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                     Real-Time Vitals
                     <span className="ml-2 text-xs text-gray-500 font-normal">Live stream</span>
                 </h3>
                 <div className="flex items-center gap-1.5">
                     <span className="status-dot-active" />
-                    <span className="text-xs text-emerald-400 font-medium">Live</span>
+                    <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Live</span>
                 </div>
             </div>
 
             {chartData.length === 0 ? (
-                <div className="flex items-center justify-center text-gray-600" style={{ height }}>
+                <div className="flex items-center justify-center text-gray-400 dark:text-gray-600" style={{ height }}>
                     <div className="text-center">
                         <div className="text-4xl mb-2">📡</div>
                         <p className="text-sm">Waiting for sensor data…</p>
@@ -101,23 +109,23 @@ export default function VitalChart({
                                 </linearGradient>
                             ))}
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                        <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                         <XAxis
                             dataKey="time"
                             tickFormatter={formatTime}
-                            stroke="rgba(255,255,255,0.15)"
-                            tick={{ fill: '#6b7280', fontSize: 11 }}
+                            stroke={axisColor}
+                            tick={{ fill: tickColor, fontSize: 11 }}
                         />
                         <YAxis
-                            stroke="rgba(255,255,255,0.15)"
-                            tick={{ fill: '#6b7280', fontSize: 11 }}
+                            stroke={axisColor}
+                            tick={{ fill: tickColor, fontSize: 11 }}
                         />
                         <Tooltip content={<CustomTooltip />} />
                         <Legend
                             verticalAlign="top"
                             height={36}
                             formatter={(value) => (
-                                <span className="text-xs text-gray-400">{VITAL_LABELS[value] || value}</span>
+                                <span className="text-xs text-gray-500 dark:text-gray-400">{VITAL_LABELS[value] || value}</span>
                             )}
                         />
                         {visibleVitals.map((key) => (

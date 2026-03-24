@@ -8,11 +8,15 @@
   }
 
   body {
-    @apply bg-gray-950 text-gray-100 font-sans;
+    @apply bg-gray-50 text-gray-900 font-sans transition-colors duration-300;
+    min-height: 100vh;
+  }
+
+  .dark body {
+    @apply bg-gray-950 text-gray-100;
     background-image:
       radial-gradient(ellipse at 10% 0%, rgba(var(--color-brand), 0.06) 0%, transparent 50%),
       radial-gradient(ellipse at 90% 100%, rgba(139, 92, 246, 0.04) 0%, transparent 50%);
-    min-height: 100vh;
   }
 
   /* Custom scrollbar */
@@ -26,18 +30,33 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.15);
     border-radius: 3px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.25);
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.2);
   }
 }
 
 @layer components {
   .glass-card {
-    @apply bg-gray-900/60 backdrop-blur-xl border border-gray-800/50 rounded-2xl;
+    @apply bg-white/80 backdrop-blur-xl border border-gray-200/60 rounded-2xl transition-colors duration-300;
+    box-shadow:
+      0 1px 3px rgba(0, 0, 0, 0.06),
+      0 4px 16px rgba(0, 0, 0, 0.04);
+  }
+
+  .dark .glass-card {
+    @apply bg-gray-900/60 border-gray-800/50;
     box-shadow:
       0 0 0 1px rgba(255, 255, 255, 0.03) inset,
       0 4px 30px rgba(0, 0, 0, 0.3);
@@ -48,6 +67,14 @@
   }
 
   .glass-card-hover:hover {
+    @apply border-gray-300/80;
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, 0.08),
+      0 8px 30px rgba(0, 0, 0, 0.06);
+    transform: translateY(-2px);
+  }
+
+  .dark .glass-card-hover:hover {
     @apply border-gray-700/60;
     box-shadow:
       0 0 0 1px rgba(255, 255, 255, 0.05) inset,
@@ -75,10 +102,19 @@
   }
 
   .nav-tab:hover {
+    @apply text-gray-700 bg-gray-100/60;
+  }
+
+  .dark .nav-tab:hover {
     @apply text-gray-300 bg-white/[0.03];
   }
 
   .nav-tab-active {
+    @apply text-brand-600 bg-brand-50;
+    box-shadow: 0 0 12px rgba(var(--color-brand), 0.06);
+  }
+
+  .dark .nav-tab-active {
     @apply text-brand-300 bg-brand-600/15;
     box-shadow: 0 0 12px rgba(var(--color-brand), 0.08);
   }

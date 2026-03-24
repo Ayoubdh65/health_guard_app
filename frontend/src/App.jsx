@@ -11,8 +11,11 @@ import {
     Bell,
     TrendingUp,
     Monitor,
+    Sun,
+    Moon,
 } from 'lucide-react';
 
+import ThemeProvider, { useTheme } from './components/ThemeProvider';
 import LoginPage from './components/LoginPage';
 import VitalCard from './components/VitalCard';
 import VitalChart from './components/VitalChart';
@@ -55,11 +58,15 @@ export default function App() {
         setCurrentUser(null);
     };
 
-    if (!isAuthenticated) {
-        return <LoginPage onLogin={handleLogin} />;
-    }
-
-    return <Dashboard currentUser={currentUser} onLogout={handleLogout} />;
+    return (
+        <ThemeProvider>
+            {!isAuthenticated ? (
+                <LoginPage onLogin={handleLogin} />
+            ) : (
+                <Dashboard currentUser={currentUser} onLogout={handleLogout} />
+            )}
+        </ThemeProvider>
+    );
 }
 
 // ── Dashboard (only rendered when authenticated) ───────────────────────────
@@ -71,6 +78,7 @@ const TABS = [
 ];
 
 function Dashboard({ currentUser, onLogout }) {
+    const { theme, toggleTheme } = useTheme();
     const { data: latest, loading: vitalsLoading } = useLatestVital(5000);
     const streamData = useVitalStream(60);
     const { patient, loading: patientLoading } = usePatient();
@@ -121,22 +129,22 @@ function Dashboard({ currentUser, onLogout }) {
             {/* ── Toast notifications (visible on all tabs) ──────────── */}
             <AlertToast toasts={toasts} onDismiss={dismissToast} />
             {/* ── Header ──────────────────────────────────────────────────── */}
-            <header className="border-b border-gray-800/50 bg-gray-950/80 backdrop-blur-xl sticky top-0 z-50">
+            <header className="border-b border-gray-200 dark:border-gray-800/50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl sticky top-0 z-50 transition-colors duration-300">
                 <div className="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="p-2.5 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 shadow-lg shadow-brand-500/20">
                             <Shield className="w-6 h-6 text-white" />
                         </div>
                         <div>
-                            <h1 className="text-xl font-bold tracking-tight text-white">
-                                Health<span className="text-brand-400">Guard</span>
+                            <h1 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+                                Health<span className="text-brand-500 dark:text-brand-400">Guard</span>
                             </h1>
                             <p className="text-xs text-gray-500 -mt-0.5">Edge Node Monitor</p>
                         </div>
                     </div>
 
                     {/* ── Navigation Tabs ────────────────────────────────── */}
-                    <nav className="flex items-center gap-1 bg-gray-900/50 rounded-xl p-1 border border-gray-800/40">
+                    <nav className="flex items-center gap-1 bg-gray-100/60 dark:bg-gray-900/50 rounded-xl p-1 border border-gray-200/50 dark:border-gray-800/40 transition-colors duration-300">
                         {TABS.map(({ key, label, icon: TabIcon }) => (
                             <button
                                 key={key}
@@ -155,25 +163,34 @@ function Dashboard({ currentUser, onLogout }) {
                     </nav>
 
                     <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-900/60 border border-gray-800/50">
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-100/60 dark:bg-gray-900/60 border border-gray-200/50 dark:border-gray-800/50 transition-colors duration-300">
                             <span className="status-dot-active" />
-                            <span className="text-xs text-emerald-400 font-medium">Monitoring</span>
+                            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Monitoring</span>
                         </div>
                         {status?.device_id && (
-                            <span className="text-xs text-gray-600 font-mono hidden sm:block">
+                            <span className="text-xs text-gray-400 dark:text-gray-600 font-mono hidden sm:block">
                                 {status.device_id}
                             </span>
                         )}
 
+                        {/* Theme toggle */}
+                        <button
+                            onClick={toggleTheme}
+                            className="p-2 rounded-xl text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 bg-gray-100/60 dark:bg-gray-900/50 border border-gray-200/50 dark:border-gray-800/40 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-200"
+                            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                        >
+                            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                        </button>
+
                         {/* User badge + Logout */}
-                        <div className="flex items-center gap-2 ml-2 pl-3 border-l border-gray-800/50">
-                            <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                        <div className="flex items-center gap-2 ml-1 pl-3 border-l border-gray-200/50 dark:border-gray-800/50">
+                            <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
                                 <User className="w-3.5 h-3.5" />
                                 <span className="hidden sm:inline">{currentUser?.username}</span>
                             </div>
                             <button
                                 onClick={onLogout}
-                                className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200"
+                                className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-500/10 transition-all duration-200"
                                 title="Sign out"
                             >
                                 <LogOut className="w-4 h-4" />
@@ -269,8 +286,8 @@ function Dashboard({ currentUser, onLogout }) {
                                             key={key}
                                             onClick={() => toggleChartVital(key)}
                                             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 border ${chartVitals.includes(key)
-                                                ? 'bg-brand-600/20 border-brand-500/40 text-brand-300'
-                                                : 'bg-gray-900/40 border-gray-800/50 text-gray-500 hover:text-gray-300 hover:border-gray-700/60'
+                                                ? 'bg-brand-500/15 dark:bg-brand-600/20 border-brand-400/40 dark:border-brand-500/40 text-brand-600 dark:text-brand-300'
+                                                : 'bg-gray-100/60 dark:bg-gray-900/40 border-gray-200/50 dark:border-gray-800/50 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700/60'
                                                 }`}
                                         >
                                             {label}
@@ -298,8 +315,8 @@ function Dashboard({ currentUser, onLogout }) {
             </main>
 
             {/* ── Footer ──────────────────────────────────────────────────── */}
-            <footer className="border-t border-gray-800/30 mt-12 py-6">
-                <div className="max-w-[1600px] mx-auto px-6 flex items-center justify-between text-xs text-gray-700">
+            <footer className="border-t border-gray-200/50 dark:border-gray-800/30 mt-12 py-6 transition-colors duration-300">
+                <div className="max-w-[1600px] mx-auto px-6 flex items-center justify-between text-xs text-gray-400 dark:text-gray-700">
                     <span>HealthGuard Edge Node v1.0.0</span>
                     <span>Raspberry Pi 8GB • {status?.mock_mode ? 'Mock Sensors' : 'Hardware Sensors'}</span>
                 </div>

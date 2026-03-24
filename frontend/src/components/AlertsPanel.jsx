@@ -8,16 +8,16 @@ const SEVERITY_CONFIG = {
     critical: {
         bg: 'bg-red-500/10',
         border: 'border-red-500/30',
-        text: 'text-red-400',
-        badge: 'bg-red-500/20 text-red-400',
+        text: 'text-red-500 dark:text-red-400',
+        badge: 'bg-red-500/20 text-red-500 dark:text-red-400',
         icon: ShieldAlert,
         dot: 'bg-red-400',
     },
     warning: {
         bg: 'bg-amber-500/10',
         border: 'border-amber-500/30',
-        text: 'text-amber-400',
-        badge: 'bg-amber-500/20 text-amber-400',
+        text: 'text-amber-500 dark:text-amber-400',
+        badge: 'bg-amber-500/20 text-amber-500 dark:text-amber-400',
         icon: AlertTriangle,
         dot: 'bg-amber-400',
     },
@@ -74,18 +74,18 @@ function AlertCard({ alert, onAcknowledge, acknowledging }) {
                     </div>
 
                     {/* Alert message */}
-                    <p className="text-sm text-gray-200 mb-1">{alert.message}</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-200 mb-1">{alert.message}</p>
 
                     {/* Plain-language reading context */}
                     {thresholdLine && (
-                        <p className="text-xs text-gray-400 leading-snug mb-1">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 leading-snug mb-1">
                             {thresholdLine}
                         </p>
                     )}
 
                     {/* Short advice */}
                     {advice && (
-                        <p className="text-[11px] text-gray-500 italic leading-snug border-t border-white/5 pt-1.5 mt-1.5">
+                        <p className="text-[11px] text-gray-500 italic leading-snug border-t border-gray-200/30 dark:border-white/5 pt-1.5 mt-1.5">
                             💡 {advice}
                         </p>
                     )}
@@ -98,7 +98,7 @@ function AlertCard({ alert, onAcknowledge, acknowledging }) {
                         disabled={acknowledging === alert.id}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg shrink-0
                             bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20
-                            hover:border-emerald-500/40 text-emerald-400 text-xs font-medium
+                            hover:border-emerald-500/40 text-emerald-600 dark:text-emerald-400 text-xs font-medium
                             transition-all duration-200 disabled:opacity-50 whitespace-nowrap"
                     >
                         <CheckCircle className="w-3.5 h-3.5" />
@@ -165,19 +165,19 @@ export default function AlertsPanel() {
             {/* ── Summary stats ──────────────────────────────────────────── */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="glass-card p-4 text-center">
-                    <div className="text-2xl font-bold text-white">{stats.total}</div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</div>
                     <div className="text-xs text-gray-500 mt-1">Total Alerts</div>
                 </div>
                 <div className="glass-card p-4 text-center border border-red-500/20">
-                    <div className="text-2xl font-bold text-red-400">{stats.critical}</div>
+                    <div className="text-2xl font-bold text-red-500 dark:text-red-400">{stats.critical}</div>
                     <div className="text-xs text-gray-500 mt-1">⚡ Urgent</div>
                 </div>
                 <div className="glass-card p-4 text-center border border-amber-500/20">
-                    <div className="text-2xl font-bold text-amber-400">{stats.warning}</div>
+                    <div className="text-2xl font-bold text-amber-500 dark:text-amber-400">{stats.warning}</div>
                     <div className="text-xs text-gray-500 mt-1">⚠️ Needs Attention</div>
                 </div>
                 <div className="glass-card p-4 text-center border border-brand-500/20">
-                    <div className="text-2xl font-bold text-brand-400">{stats.unacknowledged}</div>
+                    <div className="text-2xl font-bold text-brand-500 dark:text-brand-400">{stats.unacknowledged}</div>
                     <div className="text-xs text-gray-500 mt-1">Not Yet Noted</div>
                 </div>
             </div>
@@ -185,7 +185,7 @@ export default function AlertsPanel() {
             {/* ── Active alerts banner ───────────────────────────────────── */}
             {alerts.length > 0 && filter === 'all' && (
                 <div className="glass-card p-4 border border-red-500/20">
-                    <h3 className="text-sm font-semibold text-red-400 flex items-center gap-2 mb-3">
+                    <h3 className="text-sm font-semibold text-red-500 dark:text-red-400 flex items-center gap-2 mb-3">
                         <Bell className="w-4 h-4" />
                         Active Alerts ({alerts.length}) — Needs your attention
                     </h3>
@@ -210,8 +210,8 @@ export default function AlertsPanel() {
                         key={key}
                         onClick={() => setFilter(key)}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${filter === key
-                                ? 'bg-brand-600/20 text-brand-300 border border-brand-500/30'
-                                : 'bg-white/[0.02] text-gray-500 hover:text-gray-300 border border-white/[0.04]'
+                            ? 'bg-brand-500/15 dark:bg-brand-600/20 text-brand-600 dark:text-brand-300 border border-brand-400/30 dark:border-brand-500/30'
+                            : 'bg-gray-100/60 dark:bg-white/[0.02] text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 border border-gray-200/50 dark:border-white/[0.04]'
                             }`}
                     >
                         {label}
@@ -225,16 +225,16 @@ export default function AlertsPanel() {
                     <div className="space-y-2">
                         {[...Array(4)].map((_, i) => (
                             <div key={i} className="glass-card p-4 animate-pulse">
-                                <div className="h-4 bg-gray-800 rounded w-3/4 mb-2" />
-                                <div className="h-3 bg-gray-800 rounded w-1/2" />
+                                <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-3/4 mb-2" />
+                                <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded w-1/2" />
                             </div>
                         ))}
                     </div>
                 ) : allAlerts.length === 0 ? (
                     <div className="glass-card p-12 text-center">
                         <Shield className="w-12 h-12 text-emerald-500/30 mx-auto mb-3" />
-                        <p className="text-gray-400 text-sm font-medium">All clear! 🎉</p>
-                        <p className="text-gray-600 text-xs mt-1">All vital signs are within safe ranges</p>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">All clear! 🎉</p>
+                        <p className="text-gray-400 dark:text-gray-600 text-xs mt-1">All vital signs are within safe ranges</p>
                     </div>
                 ) : (
                     allAlerts.map((alert) => (
@@ -254,8 +254,8 @@ export default function AlertsPanel() {
                     <button
                         onClick={() => loadAllAlerts(currentPage - 1)}
                         disabled={currentPage <= 1}
-                        className="px-3 py-1.5 rounded-lg text-xs bg-white/[0.02] text-gray-400
-                            border border-white/[0.04] hover:border-white/[0.08] disabled:opacity-30
+                        className="px-3 py-1.5 rounded-lg text-xs bg-gray-100/60 dark:bg-white/[0.02] text-gray-500 dark:text-gray-400
+                            border border-gray-200/50 dark:border-white/[0.04] hover:border-gray-300 dark:hover:border-white/[0.08] disabled:opacity-30
                             transition-all"
                     >
                         Previous
@@ -266,8 +266,8 @@ export default function AlertsPanel() {
                     <button
                         onClick={() => loadAllAlerts(currentPage + 1)}
                         disabled={currentPage >= totalPages}
-                        className="px-3 py-1.5 rounded-lg text-xs bg-white/[0.02] text-gray-400
-                            border border-white/[0.04] hover:border-white/[0.08] disabled:opacity-30
+                        className="px-3 py-1.5 rounded-lg text-xs bg-gray-100/60 dark:bg-white/[0.02] text-gray-500 dark:text-gray-400
+                            border border-gray-200/50 dark:border-white/[0.04] hover:border-gray-300 dark:hover:border-white/[0.08] disabled:opacity-30
                             transition-all"
                     >
                         Next

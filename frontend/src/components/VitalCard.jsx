@@ -45,14 +45,13 @@ export default function VitalCard({
         status.status === 'normal'
             ? 'bg-emerald-400'
             : status.status === 'high'
-            ? 'bg-red-400'
-            : 'bg-blue-400';
+                ? 'bg-red-400'
+                : 'bg-blue-400';
 
     return (
         <div
-            className={`glass-card-hover p-5 relative overflow-hidden group animate-fade-in ${
-                isAlert ? `border ${status.borderColor}` : ''
-            }`}
+            className={`glass-card-hover p-5 relative overflow-hidden group animate-fade-in ${isAlert ? `border ${status.borderColor}` : ''
+                }`}
         >
             {/* Glow background */}
             <div
@@ -65,7 +64,7 @@ export default function VitalCard({
                     <div className={`p-2 rounded-xl ${bgColor}/10`}>
                         <Icon className={`w-5 h-5 ${color}`} />
                     </div>
-                    <span className="text-sm font-medium text-gray-400">{label}</span>
+                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">{label}</span>
                 </div>
 
                 {/* Status badge – plain English */}
@@ -75,13 +74,12 @@ export default function VitalCard({
                     >
                         {status.status !== 'unknown' && (
                             <span
-                                className={`status-dot ${
-                                    status.status === 'normal'
+                                className={`status-dot ${status.status === 'normal'
                                         ? 'bg-emerald-400'
                                         : status.status === 'high'
-                                        ? 'bg-red-400 animate-pulse'
-                                        : 'bg-blue-400 animate-pulse'
-                                }`}
+                                            ? 'bg-red-400 animate-pulse'
+                                            : 'bg-blue-400 animate-pulse'
+                                    }`}
                             />
                         )}
                         {status.label}
@@ -92,24 +90,22 @@ export default function VitalCard({
             {/* Value */}
             <div className="flex items-baseline gap-2 relative z-10">
                 <span
-                    className={`text-4xl font-bold tracking-tight ${
-                        isAlert ? status.textColor : 'text-white'
-                    }`}
+                    className={`text-4xl font-bold tracking-tight ${isAlert ? status.textColor : 'text-gray-900 dark:text-white'
+                        }`}
                 >
                     {value != null ? value : '—'}
                 </span>
-                <span className="text-sm text-gray-500 font-medium">{unit}</span>
+                <span className="text-sm text-gray-400 dark:text-gray-500 font-medium">{unit}</span>
 
                 {/* Trend arrow */}
                 {trendDir && (
                     <span
-                        className={`ml-auto text-xs font-mono px-2 py-0.5 rounded-full ${
-                            trendDir === 'up'
+                        className={`ml-auto text-xs font-mono px-2 py-0.5 rounded-full ${trendDir === 'up'
                                 ? 'text-red-400 bg-red-500/10'
                                 : trendDir === 'down'
-                                ? 'text-blue-400 bg-blue-500/10'
-                                : 'text-gray-500 bg-gray-800/50'
-                        }`}
+                                    ? 'text-blue-400 bg-blue-500/10'
+                                    : 'text-gray-500 bg-gray-200/50 dark:bg-gray-800/50'
+                            }`}
                     >
                         {trendDir === 'up' ? '↑' : trendDir === 'down' ? '↓' : '→'}
                     </span>
@@ -118,7 +114,7 @@ export default function VitalCard({
 
             {/* Normal range subtitle */}
             {status.normalRangeText && (
-                <p className="text-[10px] text-gray-600 mt-1 relative z-10">
+                <p className="text-[10px] text-gray-400 dark:text-gray-600 mt-1 relative z-10">
                     {status.normalRangeText}
                 </p>
             )}
@@ -126,7 +122,7 @@ export default function VitalCard({
             {/* Range bar */}
             {value != null && alert && (
                 <div className="mt-3 relative z-10">
-                    <div className="h-1 w-full bg-gray-800 rounded-full overflow-hidden">
+                    <div className="h-1 w-full bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
                         {/* Green safe zone */}
                         <div
                             className="absolute h-1 bg-emerald-500/20 rounded-full"
@@ -144,7 +140,7 @@ export default function VitalCard({
                         />
                     </div>
                     {/* Low / High labels */}
-                    <div className="flex justify-between text-[9px] text-gray-700 mt-0.5">
+                    <div className="flex justify-between text-[9px] text-gray-400 dark:text-gray-700 mt-0.5">
                         <span>Low</span>
                         <span>High</span>
                     </div>
@@ -161,11 +157,10 @@ export default function VitalCard({
             {/* Pulse animation line */}
             {isAlert && (
                 <div
-                    className={`absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent ${
-                        status.status === 'high'
+                    className={`absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent ${status.status === 'high'
                             ? 'via-red-500'
                             : 'via-blue-500'
-                    } to-transparent animate-pulse`}
+                        } to-transparent animate-pulse`}
                 />
             )}
         </div>
