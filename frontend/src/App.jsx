@@ -130,8 +130,8 @@ function Dashboard({ currentUser, onLogout }) {
             <AlertToast toasts={toasts} onDismiss={dismissToast} />
             {/* ── Header ──────────────────────────────────────────────────── */}
             <header className="border-b border-gray-200 dark:border-gray-800/50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl sticky top-0 z-50 transition-colors duration-300">
-                <div className="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 order-1">
                         <div className="p-2.5 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 shadow-lg shadow-brand-500/20">
                             <Shield className="w-6 h-6 text-white" />
                         </div>
@@ -144,7 +144,7 @@ function Dashboard({ currentUser, onLogout }) {
                     </div>
 
                     {/* ── Navigation Tabs ────────────────────────────────── */}
-                    <nav className="flex items-center gap-1 bg-gray-100/60 dark:bg-gray-900/50 rounded-xl p-1 border border-gray-200/50 dark:border-gray-800/40 transition-colors duration-300">
+                    <nav className="flex items-center justify-center gap-1 w-full sm:w-auto order-3 sm:order-2 bg-gray-100/60 dark:bg-gray-900/50 rounded-xl p-1 border border-gray-200/50 dark:border-gray-800/40 transition-colors duration-300">
                         {TABS.map(({ key, label, icon: TabIcon }) => (
                             <button
                                 key={key}
@@ -152,7 +152,7 @@ function Dashboard({ currentUser, onLogout }) {
                                 className={`nav-tab ${activeTab === key ? 'nav-tab-active' : ''}`}
                             >
                                 <TabIcon className="w-4 h-4" />
-                                <span className="hidden sm:inline">{label}</span>
+                                <span>{label}</span>
                                 {key === 'alerts' && alertStats.unacknowledged > 0 && (
                                     <span className="badge-count">
                                         {alertStats.unacknowledged > 99 ? '99+' : alertStats.unacknowledged}
@@ -162,8 +162,8 @@ function Dashboard({ currentUser, onLogout }) {
                         ))}
                     </nav>
 
-                    <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-100/60 dark:bg-gray-900/60 border border-gray-200/50 dark:border-gray-800/50 transition-colors duration-300">
+                    <div className="flex items-center gap-2 sm:gap-3 order-2 sm:order-3">
+                        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-100/60 dark:bg-gray-900/60 border border-gray-200/50 dark:border-gray-800/50 transition-colors duration-300">
                             <span className="status-dot-active" />
                             <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Monitoring</span>
                         </div>
@@ -186,7 +186,7 @@ function Dashboard({ currentUser, onLogout }) {
                         <div className="flex items-center gap-2 ml-1 pl-3 border-l border-gray-200/50 dark:border-gray-800/50">
                             <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
                                 <User className="w-3.5 h-3.5" />
-                                <span className="hidden sm:inline">{currentUser?.username}</span>
+                                <span className="truncate max-w-[80px] sm:max-w-none">{currentUser?.username}</span>
                             </div>
                             <button
                                 onClick={onLogout}
@@ -201,7 +201,7 @@ function Dashboard({ currentUser, onLogout }) {
             </header>
 
             {/* ── Main Content ────────────────────────────────────────────── */}
-            <main className="max-w-[1600px] mx-auto px-6 py-6 space-y-6">
+            <main className="max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
 
                 {/* ── Monitor Tab ──────────────────────────────────────── */}
                 {activeTab === 'monitor' && (
@@ -211,7 +211,7 @@ function Dashboard({ currentUser, onLogout }) {
                             <h2 className="text-sm font-medium text-gray-500 mb-3 uppercase tracking-wider">
                                 Current Vitals
                             </h2>
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
                                 <VitalCard
                                     label="Heart Rate"
                                     value={latest?.heart_rate}
@@ -276,9 +276,9 @@ function Dashboard({ currentUser, onLogout }) {
                         </section>
 
                         {/* Chart + Sidebar Layout */}
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
                             {/* Chart Area */}
-                            <div className="lg:col-span-2 space-y-4">
+                            <div className="lg:col-span-2 space-y-3 sm:space-y-4">
                                 {/* Chart vital toggles */}
                                 <div className="flex flex-wrap gap-2">
                                     {vitalOptions.map(({ key, label }) => (
@@ -315,8 +315,8 @@ function Dashboard({ currentUser, onLogout }) {
             </main>
 
             {/* ── Footer ──────────────────────────────────────────────────── */}
-            <footer className="border-t border-gray-200/50 dark:border-gray-800/30 mt-12 py-6 transition-colors duration-300">
-                <div className="max-w-[1600px] mx-auto px-6 flex items-center justify-between text-xs text-gray-400 dark:text-gray-700">
+            <footer className="border-t border-gray-200/50 dark:border-gray-800/30 mt-8 sm:mt-12 py-4 sm:py-6 transition-colors duration-300">
+                <div className="max-w-[1600px] mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0 text-xs text-gray-400 dark:text-gray-700 text-center sm:text-left">
                     <span>HealthGuard Edge Node v1.0.0</span>
                     <span>Raspberry Pi 8GB • {status?.mock_mode ? 'Mock Sensors' : 'Hardware Sensors'}</span>
                 </div>

@@ -28,7 +28,7 @@ export default function SystemStatus({ status, loading }) {
 
     if (loading) {
         return (
-            <div className="glass-card p-6 animate-pulse">
+            <div className="glass-card p-4 sm:p-6 animate-pulse">
                 <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-32 mb-4" />
                 <div className="space-y-3">
                     {[...Array(5)].map((_, i) => (
@@ -79,7 +79,7 @@ export default function SystemStatus({ status, loading }) {
     ];
 
     return (
-        <div className="glass-card p-6 animate-slide-up">
+        <div className="glass-card p-4 sm:p-6 animate-slide-up">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                 <div className="p-2 rounded-xl bg-emerald-500/10">
                     <Server className="w-5 h-5 text-emerald-500 dark:text-emerald-400" />

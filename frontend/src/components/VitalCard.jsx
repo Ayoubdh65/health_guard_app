@@ -50,7 +50,7 @@ export default function VitalCard({
 
     return (
         <div
-            className={`glass-card-hover p-5 relative overflow-hidden group animate-fade-in ${isAlert ? `border ${status.borderColor}` : ''
+            className={`glass-card-hover p-4 sm:p-5 relative overflow-hidden group animate-fade-in ${isAlert ? `border ${status.borderColor}` : ''
                 }`}
         >
             {/* Glow background */}

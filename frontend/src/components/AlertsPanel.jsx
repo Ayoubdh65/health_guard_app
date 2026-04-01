@@ -54,8 +54,8 @@ function AlertCard({ alert, onAcknowledge, acknowledging }) {
     const advice = vitalStatus?.advice ?? null;
 
     return (
-        <div className={`glass-card p-4 ${config.border} border animate-fade-in`}>
-            <div className="flex items-start gap-3">
+        <div className={`glass-card p-3 sm:p-4 ${config.border} border animate-fade-in`}>
+            <div className="flex items-start gap-2 sm:gap-3">
                 <div className={`p-2 rounded-xl ${config.bg} mt-0.5 shrink-0`}>
                     <SeverityIcon className={`w-5 h-5 ${config.text}`} />
                 </div>
@@ -160,23 +160,23 @@ export default function AlertsPanel() {
     ];
 
     return (
-        <div className="space-y-6 animate-fade-in">
+        <div className="space-y-4 sm:space-y-6 animate-fade-in">
 
             {/* ── Summary stats ──────────────────────────────────────────── */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="glass-card p-4 text-center">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
+                <div className="glass-card p-3 sm:p-4 text-center">
                     <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</div>
                     <div className="text-xs text-gray-500 mt-1">Total Alerts</div>
                 </div>
-                <div className="glass-card p-4 text-center border border-red-500/20">
+                <div className="glass-card p-3 sm:p-4 text-center border border-red-500/20">
                     <div className="text-2xl font-bold text-red-500 dark:text-red-400">{stats.critical}</div>
                     <div className="text-xs text-gray-500 mt-1">⚡ Urgent</div>
                 </div>
-                <div className="glass-card p-4 text-center border border-amber-500/20">
+                <div className="glass-card p-3 sm:p-4 text-center border border-amber-500/20">
                     <div className="text-2xl font-bold text-amber-500 dark:text-amber-400">{stats.warning}</div>
                     <div className="text-xs text-gray-500 mt-1">⚠️ Needs Attention</div>
                 </div>
-                <div className="glass-card p-4 text-center border border-brand-500/20">
+                <div className="glass-card p-3 sm:p-4 text-center border border-brand-500/20">
                     <div className="text-2xl font-bold text-brand-500 dark:text-brand-400">{stats.unacknowledged}</div>
                     <div className="text-xs text-gray-500 mt-1">Not Yet Noted</div>
                 </div>

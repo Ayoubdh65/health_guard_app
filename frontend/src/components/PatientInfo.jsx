@@ -11,7 +11,7 @@ import { User, Calendar, Droplets, Phone, FileText } from 'lucide-react';
 export default function PatientInfo({ patient, loading }) {
     if (loading) {
         return (
-            <div className="glass-card p-6 animate-pulse">
+            <div className="glass-card p-4 sm:p-6 animate-pulse">
                 <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-32 mb-4" />
                 <div className="space-y-3">
                     {[...Array(4)].map((_, i) => (
@@ -24,7 +24,7 @@ export default function PatientInfo({ patient, loading }) {
 
     if (!patient) {
         return (
-            <div className="glass-card p-6">
+            <div className="glass-card p-4 sm:p-6">
                 <p className="text-gray-500 text-sm">No patient profile configured</p>
             </div>
         );
@@ -39,7 +39,7 @@ export default function PatientInfo({ patient, loading }) {
     ];
 
     return (
-        <div className="glass-card p-6 animate-slide-up">
+        <div className="glass-card p-4 sm:p-6 animate-slide-up">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                 <div className="p-2 rounded-xl bg-brand-500/10">
                     <User className="w-5 h-5 text-brand-500 dark:text-brand-400" />

@@ -54,7 +54,7 @@ export default function LoginPage({ onLogin }) {
                 {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
 
-            <div className="glass-card w-full max-w-md p-8 relative z-10">
+            <div className="glass-card w-full max-w-md p-6 sm:p-8 relative z-10 mx-2 sm:mx-0">
                 {/* Header */}
                 <div className="text-center mb-8">
                     <div className="inline-flex p-3 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 shadow-lg shadow-brand-500/25 mb-4">

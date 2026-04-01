@@ -79,8 +79,8 @@ export default function VitalChart({
     }, [data]);
 
     return (
-        <div className="glass-card p-6 animate-fade-in">
-            <div className="flex items-center justify-between mb-4">
+        <div className="glass-card p-3 sm:p-6 animate-fade-in">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                     Real-Time Vitals
                     <span className="ml-2 text-xs text-gray-500 font-normal">Live stream</span>

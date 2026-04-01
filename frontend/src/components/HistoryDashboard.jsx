@@ -104,10 +104,10 @@ export default function HistoryDashboard() {
     const tickFormatter = period === '7d' || period === '30d' ? formatDate : formatTime;
 
     return (
-        <div className="space-y-6 animate-fade-in">
+        <div className="space-y-4 sm:space-y-6 animate-fade-in">
             {/* Period selector */}
-            <div className="glass-card p-4">
-                <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="glass-card p-3 sm:p-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                         <div className="p-2 rounded-xl bg-brand-500/10">
                             <TrendingUp className="w-5 h-5 text-brand-500 dark:text-brand-400" />
@@ -158,7 +158,7 @@ export default function HistoryDashboard() {
             </div>
 
             {/* Chart */}
-            <div className="glass-card p-6">
+            <div className="glass-card p-3 sm:p-6">
                 {loading ? (
                     <div className="flex items-center justify-center" style={{ height: 400 }}>
                         <div className="text-center">
@@ -235,12 +235,12 @@ export default function HistoryDashboard() {
 
             {/* Stats cards */}
             {stats && !statsLoading && (
-                <div className="glass-card p-4">
+                <div className="glass-card p-3 sm:p-4">
                     <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-2">
                         <BarChart3 className="w-4 h-4" />
                         Period Statistics
                     </h4>
-                    <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
                         <StatCard label="Avg HR" value={stats.heart_rate_avg} unit="bpm" color="#ef4444" />
                         <StatCard label="Avg SpO₂" value={stats.spo2_avg} unit="%" color="#3b82f6" />
                         <StatCard label="Avg Temp" value={stats.temperature_avg} unit="°C" color="#f59e0b" />
