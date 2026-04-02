@@ -22,6 +22,16 @@ logger = logging.getLogger(__name__)
 # ── In-process alert event bus ──────────────────────────────────────────────
 _alert_queues: list[asyncio.Queue] = []
 
+# ── Simple in-memory counters to avoid triggering on one noisy reading ─────
+# Key examples:
+#   (patient_id, "high_heart_rate")
+#   (patient_id, "low_spo2")
+_consecutive_breach_counts: dict[tuple[int, str], int] = {}
+_sensor_disconnect_counts: dict[int, int] = {}
+
+# Number of consecutive bad readings required before alerting
+ALERT_CONFIRMATION_READINGS = 2
+
 
 def subscribe_alerts() -> asyncio.Queue:
     """Create a new queue that will receive alert dicts in real-time."""
@@ -125,6 +135,30 @@ async def _is_on_cooldown(
     return (result.scalar() or 0) > 0
 
 
+def _increment_breach_count(patient_id: int, alert_type: str) -> int:
+    """Increase and return the consecutive breach count for this alert type."""
+    key = (patient_id, alert_type)
+    _consecutive_breach_counts[key] = _consecutive_breach_counts.get(key, 0) + 1
+    return _consecutive_breach_counts[key]
+
+
+def _reset_breach_count(patient_id: int, alert_type: str) -> None:
+    """Reset the consecutive breach count for this alert type."""
+    key = (patient_id, alert_type)
+    _consecutive_breach_counts.pop(key, None)
+
+
+def _increment_sensor_disconnect_count(patient_id: int) -> int:
+    """Increase and return sensor disconnect streak for this patient."""
+    _sensor_disconnect_counts[patient_id] = _sensor_disconnect_counts.get(patient_id, 0) + 1
+    return _sensor_disconnect_counts[patient_id]
+
+
+def _reset_sensor_disconnect_count(patient_id: int) -> None:
+    """Reset sensor disconnect streak for this patient."""
+    _sensor_disconnect_counts.pop(patient_id, None)
+
+
 # ── Main check function ────────────────────────────────────────────────────
 
 async def check_reading(
@@ -142,13 +176,22 @@ async def check_reading(
     async with async_session() as session:
         # ── Check for sensor disconnect (all vitals None) ───────────
         vitals = [
-            data.heart_rate, data.spo2, data.temperature,
-            data.blood_pressure_sys, data.blood_pressure_dia,
+            data.heart_rate,
+            data.spo2,
+            data.temperature,
+            data.blood_pressure_sys,
+            data.blood_pressure_dia,
             data.respiratory_rate,
         ]
+
         if all(v is None for v in vitals):
+            disconnect_count = _increment_sensor_disconnect_count(patient_id)
             alert_type = "sensor_disconnect"
-            if not await _is_on_cooldown(session, patient_id, alert_type):
+
+            if (
+                disconnect_count >= ALERT_CONFIRMATION_READINGS
+                and not await _is_on_cooldown(session, patient_id, alert_type)
+            ):
                 alert = Alert(
                     patient_id=patient_id,
                     reading_id=reading_id,
@@ -162,49 +205,82 @@ async def check_reading(
                 session.add(alert)
                 alerts_created.append(alert)
                 logger.warning("🚨 Alert: sensor_disconnect")
+
             await session.commit()
+
+            for alert in alerts_created:
+                await session.refresh(alert)
+                _broadcast_alert({
+                    "id": alert.id,
+                    "severity": alert.severity,
+                    "alert_type": alert.alert_type,
+                    "vital_name": alert.vital_name,
+                    "vital_value": alert.vital_value,
+                    "threshold": alert.threshold,
+                    "message": alert.message,
+                    "timestamp": alert.timestamp.isoformat() if alert.timestamp else None,
+                    "acknowledged": alert.acknowledged,
+                })
+
             return alerts_created
+
+        # If we got at least one real value, reset disconnect streak
+        _reset_sensor_disconnect_count(patient_id)
 
         # ── Check each vital against thresholds ─────────────────────
         for rule in _get_thresholds():
             value = getattr(data, rule["vital"], None)
+
+            # No value for this specific vital -> ignore it
             if value is None:
                 continue
 
             for check in rule["checks"]:
-                breached = False
                 direction = check["direction"]
                 threshold = check["threshold"]
+                alert_type = f"{direction}_{rule['vital']}"
 
-                if direction == "high" and value > threshold:
-                    breached = True
-                    alert_type = f"high_{rule['vital']}"
-                    msg = (
-                        f"🚨 {rule['label']} is HIGH: {value} {rule['unit']} "
-                        f"(threshold: {threshold} {rule['unit']})"
-                    )
-                elif direction == "low" and value < threshold:
-                    breached = True
-                    alert_type = f"low_{rule['vital']}"
-                    msg = (
-                        f"🚨 {rule['label']} is LOW: {value} {rule['unit']} "
-                        f"(threshold: {threshold} {rule['unit']})"
-                    )
+                breached = (
+                    (direction == "high" and value > threshold) or
+                    (direction == "low" and value < threshold)
+                )
 
-                if breached and not await _is_on_cooldown(session, patient_id, alert_type):
-                    alert = Alert(
-                        patient_id=patient_id,
-                        reading_id=reading_id,
-                        severity=check["severity"],
-                        alert_type=alert_type,
-                        vital_name=rule["vital"],
-                        vital_value=value,
-                        threshold=threshold,
-                        message=msg,
-                    )
-                    session.add(alert)
-                    alerts_created.append(alert)
-                    logger.warning(f"🚨 Alert: {alert_type} ({value} {rule['unit']})")
+                if breached:
+                    breach_count = _increment_breach_count(patient_id, alert_type)
+
+                    if direction == "high":
+                        msg = (
+                            f"🚨 {rule['label']} is HIGH: {value} {rule['unit']} "
+                            f"(threshold: {threshold} {rule['unit']})"
+                        )
+                    else:
+                        msg = (
+                            f"🚨 {rule['label']} is LOW: {value} {rule['unit']} "
+                            f"(threshold: {threshold} {rule['unit']})"
+                        )
+
+                    if (
+                        breach_count >= ALERT_CONFIRMATION_READINGS
+                        and not await _is_on_cooldown(session, patient_id, alert_type)
+                    ):
+                        alert = Alert(
+                            patient_id=patient_id,
+                            reading_id=reading_id,
+                            severity=check["severity"],
+                            alert_type=alert_type,
+                            vital_name=rule["vital"],
+                            vital_value=value,
+                            threshold=threshold,
+                            message=msg,
+                        )
+                        session.add(alert)
+                        alerts_created.append(alert)
+                        logger.warning(
+                            f"🚨 Alert: {alert_type} ({value} {rule['unit']})"
+                        )
+                else:
+                    # Reading returned to normal for this rule → reset its streak
+                    _reset_breach_count(patient_id, alert_type)
 
         await session.commit()
 
