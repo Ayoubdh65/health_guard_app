@@ -31,32 +31,53 @@ function playAlertSound(severity = 'warning') {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const isCritical = severity === 'critical';
 
-        const frequencies = isCritical ? [880, 1100, 880] : [660, 880];
+        const now = ctx.currentTime;
 
-        frequencies.forEach((freq, i) => {
+        if (isCritical) {
+            // 🚨 CRITICAL: fast double pulse (like hospital monitor)
+            for (let i = 0; i < 2; i++) {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.type = 'triangle';
+                osc.frequency.value = 900;
+
+                const start = now + i * 0.25;
+
+                gain.gain.setValueAtTime(0, start);
+                gain.gain.linearRampToValueAtTime(0.25, start + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.001, start + 0.18);
+
+                osc.start(start);
+                osc.stop(start + 0.2);
+            }
+
+        } else {
+            // ⚠️ WARNING: soft clean tone
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
 
             osc.connect(gain);
             gain.connect(ctx.destination);
 
-            osc.type = isCritical ? 'square' : 'sine';
-            osc.frequency.value = freq;
+            osc.type = 'sine';
+            osc.frequency.value = 600;
 
-            const start = ctx.currentTime + i * (isCritical ? 0.12 : 0.15);
-            const duration = isCritical ? 0.1 : 0.13;
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(0.15, now + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
 
-            gain.gain.setValueAtTime(0, start);
-            gain.gain.linearRampToValueAtTime(isCritical ? 0.15 : 0.1, start + 0.01);
-            gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
-
-            osc.start(start);
-            osc.stop(start + duration);
-        });
+            osc.start(now);
+            osc.stop(now + 0.3);
+        }
 
         setTimeout(() => ctx.close(), 1000);
+
     } catch {
-        // Audio not supported or blocked — fail silently
+        // silent fail
     }
 }
 

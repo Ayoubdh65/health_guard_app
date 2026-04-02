@@ -59,12 +59,12 @@ export default function VitalCard({
 
             {/* Header */}
             <div className="flex items-start justify-between gap-2 mb-2.5 sm:mb-3 relative z-10">
-                <div className="flex items-center gap-2 min-w-0">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
                     <div className={`p-1.5 sm:p-2 rounded-xl ${bgColor}/10 shrink-0`}>
                         <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${color}`} />
                     </div>
 
-                    <span className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                    <span className="flex-1 min-w-0 text-[11px] sm:text-sm font-medium text-gray-500 dark:text-gray-400 leading-tight whitespace-normal break-words">
                         {label}
                     </span>
                 </div>
@@ -130,8 +130,8 @@ export default function VitalCard({
                         <div
                             className="absolute h-1.5 bg-emerald-500/20 rounded-full"
                             style={{
-                                left: `${getZoneLeft(alert, status) * 100}%`,
-                                width: `${getZoneWidth(alert, status) * 100}%`,
+                                left: `${getZoneLeft(alert) * 100}%`,
+                                width: `${getZoneWidth(alert) * 100}%`,
                             }}
                         />
 
@@ -153,7 +153,7 @@ export default function VitalCard({
 
             {/* Advice for out-of-range */}
             {isAlert && status.advice && (
-                <p className="text-[10px] sm:text-[10px] text-gray-500 italic mt-2 leading-snug relative z-10 break-words">
+                <p className="text-[10px] text-gray-500 italic mt-2 leading-snug relative z-10 break-words">
                     {status.advice}
                 </p>
             )}
@@ -170,7 +170,7 @@ export default function VitalCard({
 }
 
 // Helpers to position the "safe zone" overlay on the range bar
-function getZoneLeft(alert, status) {
+function getZoneLeft(alert) {
     const span = alert.high - alert.low;
     const extended = span * 0.4;
     const visualMin = alert.low - extended;
@@ -179,7 +179,7 @@ function getZoneLeft(alert, status) {
     return (alert.low - visualMin) / totalSpan;
 }
 
-function getZoneWidth(alert, status) {
+function getZoneWidth(alert) {
     const span = alert.high - alert.low;
     const extended = span * 0.4;
     const visualMin = alert.low - extended;
