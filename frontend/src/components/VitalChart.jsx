@@ -32,19 +32,34 @@ const VITAL_LABELS = {
 function formatTime(ts) {
     if (!ts) return '';
     const d = new Date(ts);
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    return d.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+    });
 }
 
 const CustomTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null;
+
     return (
-        <div className="glass-card p-3 text-xs space-y-1">
-            <p className="text-gray-500 dark:text-gray-400 font-mono">{formatTime(label)}</p>
+        <div className="glass-card max-w-[220px] rounded-xl p-2.5 sm:p-3 text-[11px] sm:text-xs space-y-1 shadow-lg">
+            <p className="text-gray-500 dark:text-gray-400 font-mono text-[10px] sm:text-xs">
+                {formatTime(label)}
+            </p>
+
             {payload.map((entry) => (
                 <div key={entry.dataKey} className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.stroke }} />
-                    <span className="text-gray-600 dark:text-gray-300">{VITAL_LABELS[entry.dataKey] || entry.dataKey}:</span>
-                    <span className="font-bold text-gray-900 dark:text-white">{entry.value}</span>
+                    <span
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{ backgroundColor: entry.stroke }}
+                    />
+                    <span className="text-gray-600 dark:text-gray-300 truncate">
+                        {VITAL_LABELS[entry.dataKey] || entry.dataKey}:
+                    </span>
+                    <span className="font-bold text-gray-900 dark:text-white ml-auto">
+                        {entry.value}
+                    </span>
                 </div>
             ))}
         </div>
@@ -78,71 +93,112 @@ export default function VitalChart({
         }));
     }, [data]);
 
+    const responsiveHeight = height || 350;
+
     return (
-        <div className="glass-card p-3 sm:p-6 animate-fade-in">
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Real-Time Vitals
-                    <span className="ml-2 text-xs text-gray-500 font-normal">Live stream</span>
-                </h3>
-                <div className="flex items-center gap-1.5">
+        <div className="glass-card p-3 sm:p-5 rounded-2xl animate-fade-in overflow-hidden">
+            <div className="flex items-start sm:items-center justify-between gap-2 mb-3 sm:mb-4">
+                <div className="min-w-0">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white leading-tight">
+                        Real-Time Vitals
+                    </h3>
+                    <p className="text-[11px] sm:text-xs text-gray-500 font-normal mt-0.5">
+                        Live stream
+                    </p>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
                     <span className="status-dot-active" />
-                    <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Live</span>
+                    <span className="text-[11px] sm:text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                        Live
+                    </span>
                 </div>
             </div>
 
             {chartData.length === 0 ? (
-                <div className="flex items-center justify-center text-gray-400 dark:text-gray-600" style={{ height }}>
+                <div
+                    className="flex items-center justify-center text-gray-400 dark:text-gray-600"
+                    style={{ height: Math.min(responsiveHeight, 260) }}
+                >
                     <div className="text-center">
-                        <div className="text-4xl mb-2">📡</div>
-                        <p className="text-sm">Waiting for sensor data…</p>
+                        <div className="text-3xl sm:text-4xl mb-2">📡</div>
+                        <p className="text-xs sm:text-sm">Waiting for sensor data…</p>
                     </div>
                 </div>
             ) : (
-                <ResponsiveContainer width="100%" height={height}>
-                    <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
-                        <defs>
-                            {visibleVitals.map((key) => (
-                                <linearGradient key={key} id={`grad-${key}`} x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor={VITAL_COLORS[key]?.stroke || '#888'} stopOpacity={0.3} />
-                                    <stop offset="95%" stopColor={VITAL_COLORS[key]?.stroke || '#888'} stopOpacity={0} />
-                                </linearGradient>
-                            ))}
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
-                        <XAxis
-                            dataKey="time"
-                            tickFormatter={formatTime}
-                            stroke={axisColor}
-                            tick={{ fill: tickColor, fontSize: 11 }}
-                        />
-                        <YAxis
-                            stroke={axisColor}
-                            tick={{ fill: tickColor, fontSize: 11 }}
-                        />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Legend
-                            verticalAlign="top"
-                            height={36}
-                            formatter={(value) => (
-                                <span className="text-xs text-gray-500 dark:text-gray-400">{VITAL_LABELS[value] || value}</span>
-                            )}
-                        />
-                        {visibleVitals.map((key) => (
-                            <Area
-                                key={key}
-                                type="monotone"
-                                dataKey={key}
-                                stroke={VITAL_COLORS[key]?.stroke || '#888'}
-                                fill={`url(#grad-${key})`}
-                                strokeWidth={2}
-                                dot={false}
-                                activeDot={{ r: 4, strokeWidth: 0 }}
-                                animationDuration={300}
+                <div className="w-full">
+                    <ResponsiveContainer width="100%" height={window.innerWidth < 640 ? 240 : responsiveHeight}>
+                        <AreaChart
+                            data={chartData}
+                            margin={{ top: 8, right: 6, left: -28, bottom: 0 }}
+                        >
+                            <defs>
+                                {visibleVitals.map((key) => (
+                                    <linearGradient key={key} id={`grad-${key}`} x1="0" y1="0" x2="0" y2="1">
+                                        <stop
+                                            offset="0%"
+                                            stopColor={VITAL_COLORS[key]?.stroke || '#888'}
+                                            stopOpacity={0.3}
+                                        />
+                                        <stop
+                                            offset="95%"
+                                            stopColor={VITAL_COLORS[key]?.stroke || '#888'}
+                                            stopOpacity={0}
+                                        />
+                                    </linearGradient>
+                                ))}
+                            </defs>
+
+                            <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+
+                            <XAxis
+                                dataKey="time"
+                                tickFormatter={formatTime}
+                                stroke={axisColor}
+                                minTickGap={28}
+                                tick={{ fill: tickColor, fontSize: 10 }}
+                                tickMargin={8}
                             />
-                        ))}
-                    </AreaChart>
-                </ResponsiveContainer>
+
+                            <YAxis
+                                stroke={axisColor}
+                                width={30}
+                                tick={{ fill: tickColor, fontSize: 10 }}
+                                tickMargin={6}
+                            />
+
+                            <Tooltip content={<CustomTooltip />} />
+
+                            <Legend
+                                verticalAlign="top"
+                                align="left"
+                                wrapperStyle={{
+                                    paddingBottom: 8,
+                                    fontSize: '11px',
+                                }}
+                                formatter={(value) => (
+                                    <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
+                                        {VITAL_LABELS[value] || value}
+                                    </span>
+                                )}
+                            />
+
+                            {visibleVitals.map((key) => (
+                                <Area
+                                    key={key}
+                                    type="monotone"
+                                    dataKey={key}
+                                    stroke={VITAL_COLORS[key]?.stroke || '#888'}
+                                    fill={`url(#grad-${key})`}
+                                    strokeWidth={1.8}
+                                    dot={false}
+                                    activeDot={{ r: 3 }}
+                                    animationDuration={300}
+                                />
+                            ))}
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
             )}
         </div>
     );

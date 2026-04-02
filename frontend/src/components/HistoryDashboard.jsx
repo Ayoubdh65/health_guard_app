@@ -17,11 +17,11 @@ const VITAL_COLORS = {
 };
 
 const PERIODS = [
-    { key: '1h', label: '1 Hour' },
-    { key: '6h', label: '6 Hours' },
-    { key: '24h', label: '24 Hours' },
-    { key: '7d', label: '7 Days' },
-    { key: '30d', label: '30 Days' },
+    { key: '1h', label: '1 Hour', shortLabel: '1H' },
+    { key: '6h', label: '6 Hours', shortLabel: '6H' },
+    { key: '24h', label: '24 Hours', shortLabel: '24H' },
+    { key: '7d', label: '7 Days', shortLabel: '7D' },
+    { key: '30d', label: '30 Days', shortLabel: '30D' },
 ];
 
 function formatTime(ts) {
@@ -39,16 +39,23 @@ function formatDate(ts) {
 
 const CustomTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null;
+
     return (
-        <div className="glass-card p-3 text-xs space-y-1">
-            <p className="text-gray-500 dark:text-gray-400 font-mono">{formatDate(label)}</p>
+        <div className="glass-card max-w-[220px] rounded-xl p-2.5 sm:p-3 text-[11px] sm:text-xs space-y-1 shadow-lg">
+            <p className="text-gray-500 dark:text-gray-400 font-mono text-[10px] sm:text-xs">
+                {formatDate(label)}
+            </p>
+
             {payload.map((entry) => (
                 <div key={entry.dataKey} className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.stroke }} />
-                    <span className="text-gray-600 dark:text-gray-300">
+                    <span
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{ backgroundColor: entry.stroke }}
+                    />
+                    <span className="text-gray-600 dark:text-gray-300 truncate">
                         {VITAL_COLORS[entry.dataKey]?.label || entry.dataKey}:
                     </span>
-                    <span className="font-bold text-gray-900 dark:text-white">
+                    <span className="font-bold text-gray-900 dark:text-white ml-auto whitespace-nowrap">
                         {entry.value} {VITAL_COLORS[entry.dataKey]?.unit || ''}
                     </span>
                 </div>
@@ -59,12 +66,18 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 function StatCard({ label, value, unit, color }) {
     return (
-        <div className="glass-card p-3 text-center">
-            <div className="text-lg font-bold" style={{ color }}>
+        <div className="glass-card rounded-xl p-2.5 sm:p-3 text-center min-w-0">
+            <div
+                className="text-base sm:text-lg font-bold truncate"
+                style={{ color }}
+            >
                 {value ?? '—'}
             </div>
-            <div className="text-xs text-gray-500 mt-0.5">
-                {label} {unit && <span className="text-gray-400 dark:text-gray-600">({unit})</span>}
+            <div className="text-[10px] sm:text-xs text-gray-500 mt-0.5 leading-snug">
+                {label}
+                {unit && (
+                    <span className="text-gray-400 dark:text-gray-600"> ({unit})</span>
+                )}
             </div>
         </div>
     );
@@ -103,29 +116,42 @@ export default function HistoryDashboard() {
 
     const tickFormatter = period === '7d' || period === '30d' ? formatDate : formatTime;
 
+    const chartHeight =
+        typeof window !== 'undefined' && window.innerWidth < 640 ? 250 : 400;
+
     return (
-        <div className="space-y-4 sm:space-y-6 animate-fade-in">
+        <div className="space-y-3 sm:space-y-6 animate-fade-in">
             {/* Period selector */}
-            <div className="glass-card p-3 sm:p-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                        <div className="p-2 rounded-xl bg-brand-500/10">
-                            <TrendingUp className="w-5 h-5 text-brand-500 dark:text-brand-400" />
+            <div className="glass-card rounded-2xl p-3 sm:p-4">
+                <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                        <div className="p-1.5 sm:p-2 rounded-xl bg-brand-500/10 shrink-0">
+                            <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-brand-500 dark:text-brand-400" />
                         </div>
-                        Vital Trends
-                    </h3>
-                    <div className="flex items-center gap-1.5">
-                        <Clock className="w-4 h-4 text-gray-500" />
-                        {PERIODS.map(({ key, label }) => (
+                        <div className="min-w-0">
+                            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white leading-tight">
+                                Vital Trends
+                            </h3>
+                            <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">
+                                Explore historical readings
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                        <Clock className="w-4 h-4 text-gray-500 shrink-0" />
+                        {PERIODS.map(({ key, label, shortLabel }) => (
                             <button
                                 key={key}
                                 onClick={() => setPeriod(key)}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${period === key
-                                    ? 'bg-brand-500/15 dark:bg-brand-600/20 text-brand-600 dark:text-brand-300 border border-brand-400/30 dark:border-brand-500/30'
-                                    : 'bg-gray-100/60 dark:bg-white/[0.02] text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 border border-gray-200/50 dark:border-white/[0.04]'
+                                className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-medium transition-all duration-200 whitespace-nowrap ${period === key
+                                        ? 'bg-brand-500/15 dark:bg-brand-600/20 text-brand-600 dark:text-brand-300 border border-brand-400/30 dark:border-brand-500/30 shadow-sm'
+                                        : 'bg-gray-100/70 dark:bg-white/[0.03] text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 border border-gray-200/60 dark:border-white/[0.05]'
                                     }`}
+                                title={label}
                             >
-                                {label}
+                                <span className="sm:hidden">{shortLabel}</span>
+                                <span className="hidden sm:inline">{label}</span>
                             </button>
                         ))}
                     </div>
@@ -138,51 +164,61 @@ export default function HistoryDashboard() {
                     <button
                         key={key}
                         onClick={() => toggleVital(key)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1.5 ${visibleVitals.includes(key)
-                            ? 'border border-opacity-40'
-                            : 'bg-gray-100/60 dark:bg-white/[0.02] text-gray-500 dark:text-gray-600 border border-gray-200/50 dark:border-white/[0.04]'
+                        className={`px-2.5 sm:px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-medium transition-all duration-200 flex items-center gap-1.5 ${visibleVitals.includes(key)
+                                ? 'border border-opacity-40 shadow-sm'
+                                : 'bg-gray-100/70 dark:bg-white/[0.03] text-gray-500 dark:text-gray-400 border border-gray-200/60 dark:border-white/[0.05]'
                             }`}
                         style={
                             visibleVitals.includes(key)
-                                ? { color: stroke, borderColor: stroke, backgroundColor: `${stroke}10` }
+                                ? { color: stroke, borderColor: stroke, backgroundColor: `${stroke}12` }
                                 : {}
                         }
                     >
                         <span
-                            className="w-2 h-2 rounded-full"
-                            style={{ backgroundColor: visibleVitals.includes(key) ? stroke : (isDark ? '#374151' : '#d1d5db') }}
+                            className="w-2 h-2 rounded-full shrink-0"
+                            style={{
+                                backgroundColor: visibleVitals.includes(key)
+                                    ? stroke
+                                    : (isDark ? '#374151' : '#d1d5db'),
+                            }}
                         />
-                        {label}
+                        <span className="truncate">{label}</span>
                     </button>
                 ))}
             </div>
 
             {/* Chart */}
-            <div className="glass-card p-3 sm:p-6">
+            <div className="glass-card rounded-2xl p-3 sm:p-6 overflow-hidden">
                 {loading ? (
-                    <div className="flex items-center justify-center" style={{ height: 400 }}>
+                    <div className="flex items-center justify-center" style={{ height: chartHeight }}>
                         <div className="text-center">
-                            <div className="animate-spin w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full mx-auto mb-3" />
-                            <p className="text-sm text-gray-500">Loading history…</p>
+                            <div className="animate-spin w-7 h-7 sm:w-8 sm:h-8 border-2 border-brand-500 border-t-transparent rounded-full mx-auto mb-3" />
+                            <p className="text-xs sm:text-sm text-gray-500">Loading history…</p>
                         </div>
                     </div>
                 ) : chartData.length === 0 ? (
-                    <div className="flex items-center justify-center text-gray-400 dark:text-gray-600" style={{ height: 400 }}>
-                        <div className="text-center">
-                            <BarChart3 className="w-12 h-12 text-gray-300 dark:text-gray-700 mx-auto mb-3" />
-                            <p className="text-sm">No data for this period</p>
-                            <p className="text-xs text-gray-400 dark:text-gray-700 mt-1">Start collecting readings to see trends</p>
+                    <div
+                        className="flex items-center justify-center text-gray-400 dark:text-gray-600"
+                        style={{ height: chartHeight }}
+                    >
+                        <div className="text-center px-4">
+                            <BarChart3 className="w-10 h-10 sm:w-12 sm:h-12 text-gray-300 dark:text-gray-700 mx-auto mb-3" />
+                            <p className="text-xs sm:text-sm">No data for this period</p>
+                            <p className="text-[11px] sm:text-xs text-gray-400 dark:text-gray-700 mt-1">
+                                Start collecting readings to see trends
+                            </p>
                         </div>
                     </div>
                 ) : (
                     <>
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="text-xs text-gray-500">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 mb-3">
+                            <div className="text-[11px] sm:text-xs text-gray-500">
                                 {data?.total_readings?.toLocaleString()} readings · {data?.granularity}
                             </div>
                         </div>
-                        <ResponsiveContainer width="100%" height={400}>
-                            <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+
+                        <ResponsiveContainer width="100%" height={chartHeight}>
+                            <AreaChart data={chartData} margin={{ top: 8, right: 6, left: -28, bottom: 0 }}>
                                 <defs>
                                     {visibleVitals.map((key) => (
                                         <linearGradient key={key} id={`hist-grad-${key}`} x1="0" y1="0" x2="0" y2="1">
@@ -191,28 +227,42 @@ export default function HistoryDashboard() {
                                         </linearGradient>
                                     ))}
                                 </defs>
+
                                 <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+
                                 <XAxis
                                     dataKey="time"
                                     tickFormatter={tickFormatter}
                                     stroke={axisColor}
-                                    tick={{ fill: tickColor, fontSize: 11 }}
+                                    tick={{ fill: tickColor, fontSize: 10 }}
                                     interval="preserveStartEnd"
+                                    minTickGap={28}
+                                    tickMargin={8}
                                 />
+
                                 <YAxis
                                     stroke={axisColor}
-                                    tick={{ fill: tickColor, fontSize: 11 }}
+                                    tick={{ fill: tickColor, fontSize: 10 }}
+                                    width={30}
+                                    tickMargin={6}
                                 />
+
                                 <Tooltip content={<CustomTooltip />} />
+
                                 <Legend
                                     verticalAlign="top"
-                                    height={36}
+                                    align="left"
+                                    wrapperStyle={{
+                                        paddingBottom: 8,
+                                        fontSize: '11px',
+                                    }}
                                     formatter={(value) => (
-                                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                                        <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
                                             {VITAL_COLORS[value]?.label || value}
                                         </span>
                                     )}
                                 />
+
                                 {visibleVitals.map((key) => (
                                     <Area
                                         key={key}
@@ -220,9 +270,9 @@ export default function HistoryDashboard() {
                                         dataKey={key}
                                         stroke={VITAL_COLORS[key]?.stroke || '#888'}
                                         fill={`url(#hist-grad-${key})`}
-                                        strokeWidth={2}
+                                        strokeWidth={1.8}
                                         dot={false}
-                                        activeDot={{ r: 4, strokeWidth: 0 }}
+                                        activeDot={{ r: 3 }}
                                         animationDuration={500}
                                         connectNulls
                                     />
@@ -235,11 +285,12 @@ export default function HistoryDashboard() {
 
             {/* Stats cards */}
             {stats && !statsLoading && (
-                <div className="glass-card p-3 sm:p-4">
-                    <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-2">
+                <div className="glass-card rounded-2xl p-3 sm:p-4">
+                    <h4 className="text-xs sm:text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-2">
                         <BarChart3 className="w-4 h-4" />
                         Period Statistics
                     </h4>
+
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
                         <StatCard label="Avg HR" value={stats.heart_rate_avg} unit="bpm" color="#ef4444" />
                         <StatCard label="Avg SpO₂" value={stats.spo2_avg} unit="%" color="#3b82f6" />
