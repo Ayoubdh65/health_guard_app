@@ -22,8 +22,11 @@ class Settings(BaseSettings):
     SENSOR_INTERVAL_SECONDS: int = 5
 
     # ── Central Server Sync ─────────────────────────────────────────────
-    CENTRAL_SERVER_URL: str = "https://central.healthguard.example.com/api"
-    CENTRAL_API_KEY: str = "change-me"
+    SUPABASE_URL: str = "https://uuvttjinbalhkafzxadt.supabase.co"
+    SUPABASE_SERVICE_ROLE_KEY: str = "sb_publishable_6ovR25xOCn7drQoptpcr9Q_sY_5suhH"
+    SUPABASE_VITALS_TABLE: str = "vital_readings"
+    SUPABASE_PATIENTS_TABLE: str = "patients"
+    SUPABASE_ALERTS_TABLE: str = "alerts"
     SYNC_INTERVAL_SECONDS: int = 300
     SYNC_BATCH_SIZE: int = 100
 

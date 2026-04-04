@@ -10,3 +10,4 @@ passlib[bcrypt]==1.7.4
 apscheduler==3.10.4
 python-dotenv==1.0.1
 python-multipart==0.0.9
+smbus2==0.4.3
