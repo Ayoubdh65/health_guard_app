@@ -7,7 +7,7 @@ sensor connected via I2C on a Raspberry Pi.
 
 import asyncio
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import List
 
 from app.sensors.sensor_interface import SensorReader, SensorData
@@ -109,12 +109,22 @@ class PPGSensor(SensorReader):
     REFRESH_SAMPLES = 25
     FINGER_DETECT_THRESHOLD = 20000
     SIGNAL_P2P_MIN = 1000
+    PEAK_THRESHOLD_RATIO = 0.35
+    SIGNAL_SMOOTHING_WINDOW = 5
+    VALUE_SMOOTHING_WINDOW = 3
+    READING_HOLD_SECONDS = 15
 
     def __init__(self) -> None:
         self._available = False
         self._bus = None
         self._red_buffer: list[int] = []
         self._ir_buffer: list[int] = []
+        self._recent_heart_rates: list[float] = []
+        self._recent_spo2_values: list[float] = []
+        self._last_valid_heart_rate: float | None = None
+        self._last_valid_spo2: float | None = None
+        self._last_valid_heart_rate_at: datetime | None = None
+        self._last_valid_spo2_at: datetime | None = None
 
     async def initialize(self) -> None:
         """Open the I2C bus and configure the MAX30102."""
@@ -167,12 +177,14 @@ class PPGSensor(SensorReader):
             raise RuntimeError("Sensor not initialized")
 
         await self._collect_samples()
+        timestamp = datetime.now(timezone.utc)
 
         ir_dc = self._mean(self._ir_buffer)
         if ir_dc < self.FINGER_DETECT_THRESHOLD:
             logger.info("MAX30102: no finger detected")
+            self._reset_estimates()
             return SensorData(
-                timestamp=datetime.now(timezone.utc),
+                timestamp=timestamp,
                 heart_rate=None,
                 spo2=None,
                 temperature=None,
@@ -181,6 +193,19 @@ class PPGSensor(SensorReader):
 
         heart_rate = self._calculate_heart_rate(self._ir_buffer, self.SAMPLE_RATE)
         spo2 = self._calculate_spo2(self._red_buffer, self._ir_buffer)
+
+        heart_rate = self._stabilize_value(
+            value=heart_rate,
+            history=self._recent_heart_rates,
+            timestamp=timestamp,
+            value_type="heart_rate",
+        )
+        spo2 = self._stabilize_value(
+            value=spo2,
+            history=self._recent_spo2_values,
+            timestamp=timestamp,
+            value_type="spo2",
+        )
 
         if heart_rate is None or spo2 is None:
             logger.info(
@@ -191,7 +216,7 @@ class PPGSensor(SensorReader):
             )
 
         return SensorData(
-            timestamp=datetime.now(timezone.utc),
+            timestamp=timestamp,
             heart_rate=heart_rate,
             spo2=spo2,
             temperature=None,
@@ -248,7 +273,7 @@ class PPGSensor(SensorReader):
     def _normalized_waveform(self) -> list[float]:
         if not self._ir_buffer:
             return []
-        centered = self._remove_dc(self._ir_buffer)
+        centered = self._smooth_signal(self._remove_dc(self._ir_buffer))
         return [round(value, 4) for value in centered[-50:]]
 
     @staticmethod
@@ -266,15 +291,31 @@ class PPGSensor(SensorReader):
             return 0.0
         return max(data) - min(data)
 
+    @classmethod
+    def _smooth_signal(cls, data: List[float], window: int | None = None) -> list[float]:
+        if not data:
+            return []
+
+        size = window or cls.SIGNAL_SMOOTHING_WINDOW
+        if size <= 1 or len(data) < size:
+            return list(data)
+
+        smoothed: list[float] = []
+        for index in range(len(data)):
+            start = max(0, index - size + 1)
+            chunk = data[start : index + 1]
+            smoothed.append(cls._mean(chunk))
+        return smoothed
+
     def _calculate_heart_rate(self, ir_buffer: List[int], sample_rate: float) -> float | None:
-        signal = self._remove_dc(ir_buffer)
+        signal = self._smooth_signal(self._remove_dc(ir_buffer))
         p2p = self._peak_to_peak(signal)
 
         if p2p < self.SIGNAL_P2P_MIN:
             return None
 
-        threshold = p2p * 0.5
-        min_distance = int(sample_rate * 0.45)
+        threshold = p2p * self.PEAK_THRESHOLD_RATIO
+        min_distance = int(sample_rate * 0.4)
         peaks: list[int] = []
 
         for index in range(1, len(signal) - 1):
@@ -302,8 +343,8 @@ class PPGSensor(SensorReader):
     def _calculate_spo2(self, red_buffer: List[int], ir_buffer: List[int]) -> float | None:
         red_dc = self._mean(red_buffer)
         ir_dc = self._mean(ir_buffer)
-        red_ac = self._peak_to_peak(self._remove_dc(red_buffer))
-        ir_ac = self._peak_to_peak(self._remove_dc(ir_buffer))
+        red_ac = self._peak_to_peak(self._smooth_signal(self._remove_dc(red_buffer)))
+        ir_ac = self._peak_to_peak(self._smooth_signal(self._remove_dc(ir_buffer)))
 
         if red_dc <= 0 or ir_dc <= 0 or red_ac <= 0 or ir_ac <= 0:
             return None
@@ -313,3 +354,47 @@ class PPGSensor(SensorReader):
         if 70 <= spo2 <= 100:
             return round(spo2, 1)
         return None
+
+    def _stabilize_value(
+        self,
+        value: float | None,
+        history: list[float],
+        timestamp: datetime,
+        value_type: str,
+    ) -> float | None:
+        if value is not None:
+            history.append(value)
+            if len(history) > self.VALUE_SMOOTHING_WINDOW:
+                history.pop(0)
+
+            smoothed_value = round(self._mean(history), 1)
+            if value_type == "heart_rate":
+                self._last_valid_heart_rate = smoothed_value
+                self._last_valid_heart_rate_at = timestamp
+            else:
+                self._last_valid_spo2 = smoothed_value
+                self._last_valid_spo2_at = timestamp
+            return smoothed_value
+
+        last_valid_at = (
+            self._last_valid_heart_rate_at
+            if value_type == "heart_rate"
+            else self._last_valid_spo2_at
+        )
+
+        if last_valid_at and (timestamp - last_valid_at) <= timedelta(seconds=self.READING_HOLD_SECONDS):
+            return (
+                self._last_valid_heart_rate
+                if value_type == "heart_rate"
+                else self._last_valid_spo2
+            )
+
+        return None
+
+    def _reset_estimates(self) -> None:
+        self._recent_heart_rates.clear()
+        self._recent_spo2_values.clear()
+        self._last_valid_heart_rate = None
+        self._last_valid_spo2 = None
+        self._last_valid_heart_rate_at = None
+        self._last_valid_spo2_at = None
