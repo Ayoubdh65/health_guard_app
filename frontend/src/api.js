@@ -48,7 +48,9 @@ async function request(path, options = {}) {
 
     if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail || `API ${res.status}`);
+        const error = new Error(data.detail || `API ${res.status}`);
+        error.status = res.status;
+        throw error;
     }
 
     return res.json();
@@ -77,8 +79,19 @@ export const api = {
     // Patient
     getPatient: () => request('/patient'),
 
+    createPatient: (data) =>
+        request('/patient', { method: 'POST', body: JSON.stringify(data) }),
+
     updatePatient: (data) =>
         request('/patient', { method: 'PUT', body: JSON.stringify(data) }),
+
+    // Appointments
+    getAppointments: (page = 1, pageSize = 10, unreadOnly = false) =>
+        request(`/appointments?page=${page}&page_size=${pageSize}&unread_only=${unreadOnly}`),
+
+    getAppointmentStats: () => request('/appointments/stats'),
+
+    markAppointmentRead: (appointmentUuid) => request(`/appointments/${appointmentUuid}/read`, { method: 'POST' }),
 
     // System
     getSystemStatus: () => request('/system/status'),

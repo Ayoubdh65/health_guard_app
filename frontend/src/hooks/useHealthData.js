@@ -47,15 +47,49 @@ export function useVitalStream(maxPoints = 60) {
 export function usePatient() {
     const [patient, setPatient] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState(null);
 
-    useEffect(() => {
-        api.getPatient()
-            .then(setPatient)
-            .catch(() => { })
-            .finally(() => setLoading(false));
+    const refresh = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+
+        try {
+            const result = await api.getPatient();
+            setPatient(result);
+            return result;
+        } catch (err) {
+            setPatient(null);
+            setError(err);
+            return null;
+        } finally {
+            setLoading(false);
+        }
     }, []);
 
-    return { patient, loading, setPatient };
+    const saveProfile = useCallback(async (payload) => {
+        setSaving(true);
+        setError(null);
+
+        try {
+            const result = patient
+                ? await api.updatePatient(payload)
+                : await api.createPatient(payload);
+            setPatient(result);
+            return result;
+        } catch (err) {
+            setError(err);
+            throw err;
+        } finally {
+            setSaving(false);
+        }
+    }, [patient]);
+
+    useEffect(() => {
+        refresh();
+    }, [refresh]);
+
+    return { patient, loading, saving, error, refresh, saveProfile, setPatient };
 }
 
 /** Fetch system status, refreshing every `interval` ms. */
@@ -139,6 +173,56 @@ export function useAlertStats(interval = 10000) {
     }, [interval]);
 
     return { stats, loading };
+}
+
+/** Fetch appointment notifications, polling every `interval` ms. */
+export function useAppointments(interval = 15000, unreadOnly = true) {
+    const [appointments, setAppointments] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const refresh = useCallback(async () => {
+        try {
+            const res = await api.getAppointments(1, 6, unreadOnly);
+            setAppointments(res.items || []);
+            setLoading(false);
+        } catch {
+            setLoading(false);
+        }
+    }, [unreadOnly]);
+
+    useEffect(() => {
+        refresh();
+        const id = setInterval(refresh, interval);
+        return () => clearInterval(id);
+    }, [interval, refresh]);
+
+    return { appointments, loading, refresh, setAppointments };
+}
+
+/** Fetch appointment notification counts, polling every `interval` ms. */
+export function useAppointmentStats(interval = 15000) {
+    const [stats, setStats] = useState({ total: 0, unread: 0, upcoming: 0 });
+    const [loading, setLoading] = useState(true);
+
+    const refresh = useCallback(async () => {
+        try {
+            const res = await api.getAppointmentStats();
+            setStats(res);
+            setLoading(false);
+        } catch {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        refresh();
+        const id = setInterval(refresh, interval);
+        return () => {
+            clearInterval(id);
+        };
+    }, [interval, refresh]);
+
+    return { stats, loading, refresh };
 }
 
 /** Fetch vital history for a given period. */

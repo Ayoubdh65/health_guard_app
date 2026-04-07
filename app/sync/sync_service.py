@@ -95,10 +95,18 @@ async def sync_patients(session: AsyncSession) -> tuple[bool, int, str | None]:
     if not patients:
         return True, 0, None
 
+    assigned_patients = [
+        patient for patient in patients if (patient.doctor_id or "").strip()
+    ]
+
+    if not assigned_patients:
+        return True, 0, None
+
     payload_data = [
         {
             "patient_uuid": p.uuid,
             "device_id": settings.DEVICE_ID,
+            "doctor_id": p.doctor_id,
             "full_name": _build_full_name(p),
             "first_name": p.first_name,
             "last_name": p.last_name,
@@ -110,7 +118,7 @@ async def sync_patients(session: AsyncSession) -> tuple[bool, int, str | None]:
             "created_at": _safe_iso(p.created_at),
             "updated_at": _safe_iso(datetime.now(timezone.utc)),
         }
-        for p in patients
+        for p in assigned_patients
     ]
 
     supabase_url = (

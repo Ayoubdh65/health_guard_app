@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 class PatientBase(BaseModel):
     first_name: str = Field(..., max_length=100)
     last_name: str = Field(..., max_length=100)
+    doctor_id: Optional[str] = Field(None, min_length=1, max_length=50)
     date_of_birth: Optional[str] = None
     medical_id: Optional[str] = None
     blood_type: Optional[str] = None
@@ -22,9 +23,14 @@ class PatientBase(BaseModel):
     notes: Optional[str] = None
 
 
+class PatientCreate(PatientBase):
+    doctor_id: str = Field(..., min_length=1, max_length=50)
+
+
 class PatientUpdate(BaseModel):
     first_name: Optional[str] = Field(None, max_length=100)
     last_name: Optional[str] = Field(None, max_length=100)
+    doctor_id: Optional[str] = Field(None, min_length=1, max_length=50)
     date_of_birth: Optional[str] = None
     medical_id: Optional[str] = None
     blood_type: Optional[str] = None
@@ -39,6 +45,45 @@ class PatientResponse(PatientBase):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+# â”€â”€ Appointments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+class AppointmentCreate(BaseModel):
+    title: str = Field(..., min_length=3, max_length=150)
+    scheduled_for: datetime
+    location: Optional[str] = Field(None, max_length=200)
+    notes: Optional[str] = None
+
+
+class AppointmentResponse(BaseModel):
+    id: Optional[int] = None
+    uuid: str
+    patient_uuid: str
+    title: str
+    scheduled_for: datetime
+    location: Optional[str] = None
+    notes: Optional[str] = None
+    created_by: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    read_at: Optional[datetime] = None
+
+    model_config = {"from_attributes": True}
+
+
+class AppointmentsPaginated(BaseModel):
+    items: List[AppointmentResponse]
+    total: int
+    page: int
+    page_size: int
+    pages: int
+
+
+class AppointmentStats(BaseModel):
+    total: int
+    unread: int
+    upcoming: int
 
 
 # ── Vital Reading ───────────────────────────────────────────────────────────

@@ -24,6 +24,8 @@ import SystemStatus from './components/SystemStatus';
 import AlertsPanel from './components/AlertsPanel';
 import HistoryDashboard from './components/HistoryDashboard';
 import AlertToast from './components/AlertToast';
+import AppointmentNotifications from './components/AppointmentNotifications';
+import PatientRegistrationCard from './components/PatientRegistrationCard';
 import { getToken, getStoredUser, clearAuth, subscribeAlerts } from './api';
 import {
     useLatestVital,
@@ -31,6 +33,8 @@ import {
     usePatient,
     useSystemStatus,
     useAlertStats,
+    useAppointments,
+    useAppointmentStats,
 } from './hooks/useHealthData';
 
 export default function App() {
@@ -77,27 +81,52 @@ const TABS = [
     { key: 'alerts', label: 'Alerts', icon: Bell },
 ];
 
+function needsPatientRegistration(patient) {
+    if (!patient) {
+        return true;
+    }
+
+    const placeholderProfile = (
+        patient.first_name === 'Default'
+        && patient.last_name === 'Patient'
+        && patient.medical_id === 'MED-000001'
+        && !patient.doctor_id
+    );
+
+    return placeholderProfile || !patient.doctor_id;
+}
+
 function Dashboard({ currentUser, onLogout }) {
     const { theme, toggleTheme } = useTheme();
     const { data: latest, loading: vitalsLoading } = useLatestVital(5000);
     const streamData = useVitalStream(60);
-    const { patient, loading: patientLoading } = usePatient();
+    const {
+        patient,
+        loading: patientLoading,
+        saving: patientSaving,
+        saveProfile,
+    } = usePatient();
     const { status, loading: systemLoading } = useSystemStatus(10000);
     const { stats: alertStats } = useAlertStats(8000);
+    const { appointments, loading: appointmentsLoading, refresh: refreshAppointments } = useAppointments(15000, true);
+    const { stats: appointmentStats, refresh: refreshAppointmentStats } = useAppointmentStats(15000);
 
     const [activeTab, setActiveTab] = useState('monitor');
     const [chartVitals, setChartVitals] = useState(['heart_rate', 'spo2']);
+    const patientNeedsRegistration = !patientLoading && needsPatientRegistration(patient);
 
     // ── Toast notification state ────────────────────────────────────────
     const [toasts, setToasts] = useState([]);
     const toastIdRef = useRef(0);
+    const knownAppointmentUuidsRef = useRef(new Set());
+    const appointmentsLoadedRef = useRef(false);
     const MAX_TOASTS = 5;
 
     // Subscribe to real-time alert SSE stream
     useEffect(() => {
         const source = subscribeAlerts((alertData) => {
             toastIdRef.current += 1;
-            const toast = { ...alertData, _toastId: toastIdRef.current };
+            const toast = { kind: 'alert', ...alertData, _toastId: toastIdRef.current };
             setToasts((prev) => {
                 const next = [toast, ...prev];
                 return next.length > MAX_TOASTS ? next.slice(0, MAX_TOASTS) : next;
@@ -105,6 +134,37 @@ function Dashboard({ currentUser, onLogout }) {
         });
         return () => source.close();
     }, []);
+
+    useEffect(() => {
+        if (appointmentsLoading) return;
+
+        const unreadAppointments = appointments.filter((appointment) => !appointment.read_at);
+
+        if (!appointmentsLoadedRef.current) {
+            unreadAppointments.forEach((appointment) => knownAppointmentUuidsRef.current.add(appointment.uuid));
+            appointmentsLoadedRef.current = true;
+            return;
+        }
+
+        const newAppointments = unreadAppointments.filter(
+            (appointment) => !knownAppointmentUuidsRef.current.has(appointment.uuid)
+        );
+
+        if (newAppointments.length > 0) {
+            setToasts((prev) => {
+                const nextToasts = newAppointments
+                    .map((appointment) => {
+                        toastIdRef.current += 1;
+                        return { kind: 'appointment', ...appointment, _toastId: toastIdRef.current };
+                    })
+                    .reverse();
+                const next = [...nextToasts, ...prev];
+                return next.length > MAX_TOASTS ? next.slice(0, MAX_TOASTS) : next;
+            });
+        }
+
+        unreadAppointments.forEach((appointment) => knownAppointmentUuidsRef.current.add(appointment.uuid));
+    }, [appointments, appointmentsLoading]);
 
     const dismissToast = useCallback((toastId) => {
         setToasts((prev) => prev.filter((t) => t._toastId !== toastId));
@@ -127,7 +187,14 @@ function Dashboard({ currentUser, onLogout }) {
     return (
         <div className="min-h-screen">
             {/* ── Toast notifications (visible on all tabs) ──────────── */}
-            <AlertToast toasts={toasts} onDismiss={dismissToast} />
+            <AlertToast
+                toasts={toasts}
+                onDismiss={dismissToast}
+                onActionComplete={() => {
+                    refreshAppointments();
+                    refreshAppointmentStats();
+                }}
+            />
             {/* ── Header ──────────────────────────────────────────────────── */}
             <header className="border-b border-gray-200 dark:border-gray-800/50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl sticky top-0 z-50 transition-colors duration-300">
                 <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-4">
@@ -167,6 +234,14 @@ function Dashboard({ currentUser, onLogout }) {
                             <span className="status-dot-active" />
                             <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Monitoring</span>
                         </div>
+                        {appointmentStats.unread > 0 && (
+                            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-600 dark:text-brand-300 transition-colors duration-300">
+                                <Bell className="w-3.5 h-3.5" />
+                                <span className="text-xs font-medium">
+                                    {appointmentStats.unread} new appointment{appointmentStats.unread > 1 ? 's' : ''}
+                                </span>
+                            </div>
+                        )}
                         {status?.device_id && (
                             <span className="text-xs text-gray-400 dark:text-gray-600 font-mono hidden sm:block">
                                 {status.device_id}
@@ -300,7 +375,24 @@ function Dashboard({ currentUser, onLogout }) {
 
                             {/* Sidebar */}
                             <div className="space-y-6">
-                                <PatientInfo patient={patient} loading={patientLoading} />
+                                {patientNeedsRegistration ? (
+                                    <PatientRegistrationCard
+                                        patient={patient}
+                                        onSave={saveProfile}
+                                        saving={patientSaving}
+                                    />
+                                ) : (
+                                    <PatientInfo patient={patient} loading={patientLoading} />
+                                )}
+                                <AppointmentNotifications
+                                    appointments={appointments}
+                                    loading={appointmentsLoading}
+                                    unreadCount={appointmentStats.unread}
+                                    onRefresh={() => {
+                                        refreshAppointments();
+                                        refreshAppointmentStats();
+                                    }}
+                                />
                                 <SystemStatus status={status} loading={systemLoading} />
                             </div>
                         </div>

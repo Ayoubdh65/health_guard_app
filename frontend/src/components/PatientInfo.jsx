@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Calendar, Droplets, Phone, FileText } from 'lucide-react';
+import { User, Calendar, Droplets, Phone, FileText, Shield } from 'lucide-react';
 
 /**
  * PatientInfo – Glassmorphism card showing the patient profile.
@@ -25,7 +25,9 @@ export default function PatientInfo({ patient, loading }) {
     if (!patient) {
         return (
             <div className="glass-card p-4 sm:p-6">
-                <p className="text-gray-500 text-sm">No patient profile configured</p>
+                <p className="text-gray-500 text-sm">
+                    Register this device to a patient profile to start syncing with the doctor dashboard.
+                </p>
             </div>
         );
     }

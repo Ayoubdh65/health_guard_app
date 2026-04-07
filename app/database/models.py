@@ -57,6 +57,7 @@ class Patient(Base):
     uuid = Column(String(36), unique=True, nullable=False, default=_generate_uuid)
     first_name = Column(String(100), nullable=False)
     last_name = Column(String(100), nullable=False)
+    doctor_id = Column(String(50), nullable=True, index=True)
     date_of_birth = Column(String(10), nullable=True)          # ISO format YYYY-MM-DD
     medical_id = Column(String(50), unique=True, nullable=True)
     blood_type = Column(String(5), nullable=True)              # e.g. "A+", "O-"
@@ -68,6 +69,7 @@ class Patient(Base):
     # Relationships
     vital_readings = relationship("VitalReading", back_populates="patient", cascade="all, delete-orphan")
     alerts = relationship("Alert", back_populates="patient", cascade="all, delete-orphan")
+    appointments = relationship("Appointment", back_populates="patient", cascade="all, delete-orphan")
 
 
 # ── Vital Reading ───────────────────────────────────────────────────────────
@@ -141,3 +143,25 @@ class Alert(Base):
     # Relationships
     patient = relationship("Patient", back_populates="alerts")
     reading = relationship("VitalReading")
+
+
+# â”€â”€ Appointment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+class Appointment(Base):
+    """Scheduled appointment created for the patient."""
+
+    __tablename__ = "appointments"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    uuid = Column(String(36), unique=True, nullable=False, default=_generate_uuid)
+    patient_id = Column(Integer, ForeignKey("patients.id"), nullable=False, index=True)
+    title = Column(String(150), nullable=False)
+    scheduled_for = Column(DateTime(timezone=True), nullable=False, index=True)
+    location = Column(String(200), nullable=True)
+    notes = Column(Text, nullable=True)
+    created_by = Column(String(50), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=_utcnow, index=True)
+    updated_at = Column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow)
+    read_at = Column(DateTime(timezone=True), nullable=True, index=True)
+
+    patient = relationship("Patient", back_populates="appointments")

@@ -29,6 +29,20 @@ class Base(DeclarativeBase):
     pass
 
 
+def _run_startup_migrations(sync_conn) -> None:
+    """Apply lightweight SQLite migrations for existing edge-node databases."""
+    patient_columns = {
+        row[1] for row in sync_conn.exec_driver_sql("PRAGMA table_info(patients)").fetchall()
+    }
+
+    if "doctor_id" not in patient_columns:
+        sync_conn.exec_driver_sql("ALTER TABLE patients ADD COLUMN doctor_id VARCHAR(50)")
+
+    sync_conn.exec_driver_sql(
+        "CREATE INDEX IF NOT EXISTS ix_patients_doctor_id ON patients (doctor_id)"
+    )
+
+
 async def get_db() -> AsyncSession:
     """FastAPI dependency – yields an async DB session."""
     async with async_session() as session:
@@ -43,5 +57,6 @@ async def get_db() -> AsyncSession:
 async def init_db() -> None:
     """Create all tables on startup."""
     async with engine.begin() as conn:
-        from app.database.models import Patient, VitalReading, SyncLog, Alert  # noqa: F401
+        from app.database.models import Patient, VitalReading, SyncLog, Alert, Appointment  # noqa: F401
         await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(_run_startup_migrations)

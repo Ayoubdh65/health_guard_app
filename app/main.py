@@ -22,7 +22,7 @@ from fastapi.responses import FileResponse
 from app.config import get_settings
 from app.database.database import init_db
 from app.sensors.sensor_manager import start_collection, stop_collection
-from app.routes import vitals, patient, system, auth, alerts
+from app.routes import vitals, patient, system, auth, alerts, appointments
 
 # ── Logging ─────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -144,6 +144,7 @@ app.include_router(vitals.router)
 app.include_router(patient.router)
 app.include_router(system.router)
 app.include_router(alerts.router)
+app.include_router(appointments.router)
 
 # ── Static files (React dashboard build) ────────────────────────────────────
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")

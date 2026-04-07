@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     SUPABASE_VITALS_TABLE: str = "vital_readings"
     SUPABASE_PATIENTS_TABLE: str = "patients"
     SUPABASE_ALERTS_TABLE: str = "alerts"
+    SUPABASE_APPOINTMENTS_TABLE: str = "appointments"
     SYNC_INTERVAL_SECONDS: int = 300
     SYNC_BATCH_SIZE: int = 100
 
