@@ -137,6 +137,22 @@ function formatAppointmentDate(timestamp) {
     }).format(new Date(timestamp));
 }
 
+function getAppointmentToastCopy(appointment) {
+    if (appointment.status === 'cancelled') {
+        return {
+            badge: 'Appointment Canceled',
+            title: `${appointment.title} was canceled`,
+            subtitle: `Your appointment on ${formatAppointmentDate(appointment.scheduled_for)} was canceled.`,
+        };
+    }
+
+    return {
+        badge: 'Appointment',
+        title: appointment.title,
+        subtitle: `Scheduled for ${formatAppointmentDate(appointment.scheduled_for)}`,
+    };
+}
+
 function AppointmentToast({ appointment, onDismiss, onActionComplete }) {
     const [exiting, setExiting] = useState(false);
     const [markingRead, setMarkingRead] = useState(false);
@@ -170,6 +186,11 @@ function AppointmentToast({ appointment, onDismiss, onActionComplete }) {
         }
     };
 
+    const copy = getAppointmentToastCopy(appointment);
+    const activityTime = appointment.status === 'cancelled'
+        ? appointment.updated_at || appointment.created_at
+        : appointment.created_at;
+
     return (
         <div
             className={`toast-notification ${exiting ? 'toast-exit' : 'toast-enter'}
@@ -195,21 +216,21 @@ function AppointmentToast({ appointment, onDismiss, onActionComplete }) {
                             <span
                                 className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold tracking-wide ${APPOINTMENT_CONFIG.badge}`}
                             >
-                                Appointment
+                                {copy.badge}
                             </span>
 
                             <span className="text-[10px] sm:text-[11px] text-gray-500 font-mono flex items-center gap-1">
                                 <Clock className="w-3 h-3" />
-                                {timeAgo(appointment.created_at)}
+                                {timeAgo(activityTime)}
                             </span>
                         </div>
 
                         <p className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-100 leading-snug break-words pr-1">
-                            {appointment.title}
+                            {copy.title}
                         </p>
 
                         <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-300 mt-1 leading-snug break-words">
-                            Scheduled for {formatAppointmentDate(appointment.scheduled_for)}
+                            {copy.subtitle}
                         </p>
 
                         {appointment.location && (

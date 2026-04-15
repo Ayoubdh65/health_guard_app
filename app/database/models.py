@@ -58,6 +58,8 @@ class Patient(Base):
     first_name = Column(String(100), nullable=False)
     last_name = Column(String(100), nullable=False)
     doctor_id = Column(String(50), nullable=True, index=True)
+    doctor_invite_code = Column(String(20), nullable=True)
+    assigned_doctor_name = Column(String(150), nullable=True)
     date_of_birth = Column(String(10), nullable=True)          # ISO format YYYY-MM-DD
     medical_id = Column(String(50), unique=True, nullable=True)
     blood_type = Column(String(5), nullable=True)              # e.g. "A+", "O-"

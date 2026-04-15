@@ -176,19 +176,19 @@ export function useAlertStats(interval = 10000) {
 }
 
 /** Fetch appointment notifications, polling every `interval` ms. */
-export function useAppointments(interval = 15000, unreadOnly = true) {
+export function useAppointments(interval = 15000, unreadOnly = true, pageSize = 20) {
     const [appointments, setAppointments] = useState([]);
     const [loading, setLoading] = useState(true);
 
     const refresh = useCallback(async () => {
         try {
-            const res = await api.getAppointments(1, 6, unreadOnly);
+            const res = await api.getAppointments(1, pageSize, unreadOnly);
             setAppointments(res.items || []);
             setLoading(false);
         } catch {
             setLoading(false);
         }
-    }, [unreadOnly]);
+    }, [pageSize, unreadOnly]);
 
     useEffect(() => {
         refresh();
@@ -222,7 +222,7 @@ export function useAppointmentStats(interval = 15000) {
         };
     }, [interval, refresh]);
 
-    return { stats, loading, refresh };
+    return { stats, loading, refresh, setStats };
 }
 
 /** Fetch vital history for a given period. */

@@ -15,7 +15,6 @@ from pydantic import BaseModel, Field
 class PatientBase(BaseModel):
     first_name: str = Field(..., max_length=100)
     last_name: str = Field(..., max_length=100)
-    doctor_id: Optional[str] = Field(None, min_length=1, max_length=50)
     date_of_birth: Optional[str] = None
     medical_id: Optional[str] = None
     blood_type: Optional[str] = None
@@ -24,13 +23,13 @@ class PatientBase(BaseModel):
 
 
 class PatientCreate(PatientBase):
-    doctor_id: str = Field(..., min_length=1, max_length=50)
+    doctor_code: str = Field(..., min_length=3, max_length=20)
 
 
 class PatientUpdate(BaseModel):
     first_name: Optional[str] = Field(None, max_length=100)
     last_name: Optional[str] = Field(None, max_length=100)
-    doctor_id: Optional[str] = Field(None, min_length=1, max_length=50)
+    doctor_code: Optional[str] = Field(None, min_length=3, max_length=20)
     date_of_birth: Optional[str] = None
     medical_id: Optional[str] = None
     blood_type: Optional[str] = None
@@ -41,6 +40,9 @@ class PatientUpdate(BaseModel):
 class PatientResponse(PatientBase):
     id: int
     uuid: str
+    doctor_id: Optional[str] = None
+    doctor_invite_code: Optional[str] = None
+    assigned_doctor_name: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -61,6 +63,7 @@ class AppointmentResponse(BaseModel):
     uuid: str
     patient_uuid: str
     title: str
+    status: str = "scheduled"
     scheduled_for: datetime
     location: Optional[str] = None
     notes: Optional[str] = None

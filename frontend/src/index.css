@@ -97,8 +97,19 @@
   }
 
   /* ── Navigation tabs ──────────────────────────────────── */
+  .mobile-tab-strip {
+    @apply flex items-center gap-1 overflow-x-auto whitespace-nowrap;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobile-tab-strip::-webkit-scrollbar {
+    display: none;
+  }
+
   .nav-tab {
-    @apply relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-gray-500 transition-all duration-200 cursor-pointer;
+    @apply relative inline-flex items-center justify-center gap-1.5 min-w-max px-3 py-2.5 rounded-lg text-[11px] font-medium text-gray-500 transition-all duration-200 cursor-pointer shrink-0;
   }
 
   .nav-tab:hover {
@@ -123,6 +134,16 @@
   .badge-count {
     @apply inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold leading-none bg-red-500 text-white;
     animation: badge-pop 0.3s ease-out;
+  }
+
+  @media (min-width: 640px) {
+    .mobile-tab-strip {
+      @apply overflow-visible whitespace-normal;
+    }
+
+    .nav-tab {
+      @apply min-w-0 text-xs px-3 py-2;
+    }
   }
 
   @keyframes badge-pop {

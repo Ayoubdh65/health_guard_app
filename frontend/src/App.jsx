@@ -9,6 +9,7 @@ import {
     LogOut,
     User,
     Bell,
+    CalendarClock,
     TrendingUp,
     Monitor,
     Sun,
@@ -76,9 +77,10 @@ export default function App() {
 // ── Dashboard (only rendered when authenticated) ───────────────────────────
 
 const TABS = [
-    { key: 'monitor', label: 'Monitor', icon: Monitor },
-    { key: 'history', label: 'History', icon: TrendingUp },
-    { key: 'alerts', label: 'Alerts', icon: Bell },
+    { key: 'monitor', label: 'Monitor', shortLabel: 'Monitor', icon: Monitor },
+    { key: 'history', label: 'History', shortLabel: 'History', icon: TrendingUp },
+    { key: 'alerts', label: 'Alerts', shortLabel: 'Alerts', icon: Bell },
+    { key: 'appointments', label: 'Notifications', shortLabel: 'Inbox', icon: CalendarClock },
 ];
 
 function needsPatientRegistration(patient) {
@@ -108,8 +110,17 @@ function Dashboard({ currentUser, onLogout }) {
     } = usePatient();
     const { status, loading: systemLoading } = useSystemStatus(10000);
     const { stats: alertStats } = useAlertStats(8000);
-    const { appointments, loading: appointmentsLoading, refresh: refreshAppointments } = useAppointments(15000, true);
-    const { stats: appointmentStats, refresh: refreshAppointmentStats } = useAppointmentStats(15000);
+    const {
+        appointments,
+        loading: appointmentsLoading,
+        refresh: refreshAppointments,
+        setAppointments,
+    } = useAppointments(15000, false, 20);
+    const {
+        stats: appointmentStats,
+        refresh: refreshAppointmentStats,
+        setStats: setAppointmentStats,
+    } = useAppointmentStats(15000);
 
     const [activeTab, setActiveTab] = useState('monitor');
     const [chartVitals, setChartVitals] = useState(['heart_rate', 'spo2']);
@@ -184,6 +195,27 @@ function Dashboard({ currentUser, onLogout }) {
         );
     };
 
+    const handleAppointmentRead = useCallback((updatedAppointment) => {
+        if (!updatedAppointment?.uuid) {
+            return;
+        }
+
+        setAppointments((prev) =>
+            prev.map((appointment) =>
+                appointment.uuid === updatedAppointment.uuid
+                    ? { ...appointment, ...updatedAppointment }
+                    : appointment
+            )
+        );
+
+        if (updatedAppointment.read_at) {
+            setAppointmentStats((prev) => ({
+                ...prev,
+                unread: Math.max(0, prev.unread - 1),
+            }));
+        }
+    }, [setAppointments, setAppointmentStats]);
+
     return (
         <div className="min-h-screen">
             {/* ── Toast notifications (visible on all tabs) ──────────── */}
@@ -197,51 +229,51 @@ function Dashboard({ currentUser, onLogout }) {
             />
             {/* ── Header ──────────────────────────────────────────────────── */}
             <header className="border-b border-gray-200 dark:border-gray-800/50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl sticky top-0 z-50 transition-colors duration-300">
-                <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-4">
-                    <div className="flex items-center gap-3 order-1">
-                        <div className="p-2.5 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 shadow-lg shadow-brand-500/20">
-                            <Shield className="w-6 h-6 text-white" />
+                <div className="max-w-[1600px] mx-auto px-3 sm:px-6 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-3 sm:gap-4">
+                    <div className="flex items-center gap-2.5 sm:gap-3 order-1 min-w-0">
+                        <div className="p-2 sm:p-2.5 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 shadow-lg shadow-brand-500/20 shrink-0">
+                            <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                         </div>
-                        <div>
-                            <h1 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+                        <div className="min-w-0">
+                            <h1 className="text-lg sm:text-xl font-bold tracking-tight text-gray-900 dark:text-white truncate">
                                 Health<span className="text-brand-500 dark:text-brand-400">Guard</span>
                             </h1>
-                            <p className="text-xs text-gray-500 -mt-0.5">Edge Node Monitor</p>
+                            <p className="hidden sm:block text-xs text-gray-500 -mt-0.5">Edge Node Monitor</p>
                         </div>
                     </div>
 
                     {/* ── Navigation Tabs ────────────────────────────────── */}
-                    <nav className="flex items-center justify-center gap-1 w-full sm:w-auto order-3 sm:order-2 bg-gray-100/60 dark:bg-gray-900/50 rounded-xl p-1 border border-gray-200/50 dark:border-gray-800/40 transition-colors duration-300">
-                        {TABS.map(({ key, label, icon: TabIcon }) => (
+                    <nav className="w-full sm:w-auto sm:flex-1 order-3 sm:order-2">
+                        <div className="mobile-tab-strip sm:flex sm:items-center sm:justify-center sm:gap-1 sm:w-auto bg-gray-100/60 dark:bg-gray-900/50 rounded-xl p-1 border border-gray-200/50 dark:border-gray-800/40 transition-colors duration-300">
+                        {TABS.map(({ key, label, shortLabel, icon: TabIcon }) => (
                             <button
                                 key={key}
                                 onClick={() => setActiveTab(key)}
                                 className={`nav-tab ${activeTab === key ? 'nav-tab-active' : ''}`}
                             >
                                 <TabIcon className="w-4 h-4" />
-                                <span>{label}</span>
+                                <span className="sm:hidden">{shortLabel}</span>
+                                <span className="hidden sm:inline">{label}</span>
                                 {key === 'alerts' && alertStats.unacknowledged > 0 && (
                                     <span className="badge-count">
                                         {alertStats.unacknowledged > 99 ? '99+' : alertStats.unacknowledged}
                                     </span>
                                 )}
+                                {key === 'appointments' && appointmentStats.unread > 0 && (
+                                    <span className="badge-count">
+                                        {appointmentStats.unread > 99 ? '99+' : appointmentStats.unread}
+                                    </span>
+                                )}
                             </button>
                         ))}
+                        </div>
                     </nav>
 
-                    <div className="flex items-center gap-2 sm:gap-3 order-2 sm:order-3">
+                    <div className="flex items-center gap-1.5 sm:gap-3 order-2 sm:order-3 ml-auto">
                         <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-100/60 dark:bg-gray-900/60 border border-gray-200/50 dark:border-gray-800/50 transition-colors duration-300">
                             <span className="status-dot-active" />
                             <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Monitoring</span>
                         </div>
-                        {appointmentStats.unread > 0 && (
-                            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-600 dark:text-brand-300 transition-colors duration-300">
-                                <Bell className="w-3.5 h-3.5" />
-                                <span className="text-xs font-medium">
-                                    {appointmentStats.unread} new appointment{appointmentStats.unread > 1 ? 's' : ''}
-                                </span>
-                            </div>
-                        )}
                         {status?.device_id && (
                             <span className="text-xs text-gray-400 dark:text-gray-600 font-mono hidden sm:block">
                                 {status.device_id}
@@ -251,17 +283,17 @@ function Dashboard({ currentUser, onLogout }) {
                         {/* Theme toggle */}
                         <button
                             onClick={toggleTheme}
-                            className="p-2 rounded-xl text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 bg-gray-100/60 dark:bg-gray-900/50 border border-gray-200/50 dark:border-gray-800/40 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-200"
+                            className="p-2 rounded-xl text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 bg-gray-100/60 dark:bg-gray-900/50 border border-gray-200/50 dark:border-gray-800/40 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-200 shrink-0"
                             title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
                         >
                             {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                         </button>
 
                         {/* User badge + Logout */}
-                        <div className="flex items-center gap-2 ml-1 pl-3 border-l border-gray-200/50 dark:border-gray-800/50">
+                        <div className="flex items-center gap-1.5 sm:gap-2 ml-1 pl-2 sm:pl-3 border-l border-gray-200/50 dark:border-gray-800/50 shrink-0">
                             <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
                                 <User className="w-3.5 h-3.5" />
-                                <span className="truncate max-w-[80px] sm:max-w-none">{currentUser?.username}</span>
+                                <span className="hidden sm:inline truncate max-w-[80px] sm:max-w-none">{currentUser?.username}</span>
                             </div>
                             <button
                                 onClick={onLogout}
@@ -384,15 +416,6 @@ function Dashboard({ currentUser, onLogout }) {
                                 ) : (
                                     <PatientInfo patient={patient} loading={patientLoading} />
                                 )}
-                                <AppointmentNotifications
-                                    appointments={appointments}
-                                    loading={appointmentsLoading}
-                                    unreadCount={appointmentStats.unread}
-                                    onRefresh={() => {
-                                        refreshAppointments();
-                                        refreshAppointmentStats();
-                                    }}
-                                />
                                 <SystemStatus status={status} loading={systemLoading} />
                             </div>
                         </div>
@@ -404,6 +427,19 @@ function Dashboard({ currentUser, onLogout }) {
 
                 {/* ── Alerts Tab ───────────────────────────────────────── */}
                 {activeTab === 'alerts' && <AlertsPanel />}
+
+                {activeTab === 'appointments' && (
+                    <AppointmentNotifications
+                        appointments={appointments}
+                        loading={appointmentsLoading}
+                        unreadCount={appointmentStats.unread}
+                        onMarkRead={handleAppointmentRead}
+                        onRefresh={() => {
+                            refreshAppointments();
+                            refreshAppointmentStats();
+                        }}
+                    />
+                )}
             </main>
 
             {/* ── Footer ──────────────────────────────────────────────────── */}

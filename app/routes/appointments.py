@@ -48,8 +48,8 @@ def _sort_appointments(items: list[AppointmentResponse]) -> list[AppointmentResp
         items,
         key=lambda item: (
             0 if item.read_at is None else 1,
+            -item.updated_at.timestamp(),
             item.scheduled_for,
-            -item.created_at.timestamp(),
         ),
     )
 
@@ -58,7 +58,7 @@ async def _fetch_supabase_appointments(patient_uuid: str) -> list[AppointmentRes
     settings = get_settings()
     url = f"{settings.SUPABASE_URL}/rest/v1/{settings.SUPABASE_APPOINTMENTS_TABLE}"
     params = {
-        "select": "id,uuid,patient_uuid,title,scheduled_for,location,notes,created_by,created_at,updated_at,read_at",
+        "select": "id,uuid,patient_uuid,title,status,scheduled_for,location,notes,created_by,created_at,updated_at,read_at",
         "patient_uuid": f"eq.{patient_uuid}",
         "limit": "200",
     }
@@ -128,7 +128,7 @@ async def appointment_stats(
     return AppointmentStats(
         total=len(items),
         unread=sum(1 for item in items if item.read_at is None),
-        upcoming=sum(1 for item in items if item.scheduled_for >= now),
+        upcoming=sum(1 for item in items if item.status == "scheduled" and item.scheduled_for >= now),
     )
 
 
@@ -153,6 +153,7 @@ async def create_appointment(
         "uuid": appointment_uuid,
         "patient_uuid": patient.uuid,
         "title": payload.title,
+        "status": "scheduled",
         "scheduled_for": _safe_iso(payload.scheduled_for),
         "location": payload.location,
         "notes": payload.notes,
@@ -207,7 +208,7 @@ async def mark_appointment_as_read(
     params = {
         "uuid": f"eq.{appointment_uuid}",
         "patient_uuid": f"eq.{patient.uuid}",
-        "select": "id,uuid,patient_uuid,title,scheduled_for,location,notes,created_by,created_at,updated_at,read_at",
+        "select": "id,uuid,patient_uuid,title,status,scheduled_for,location,notes,created_by,created_at,updated_at,read_at",
     }
     payload = {
         "read_at": _safe_iso(now),

@@ -16,7 +16,7 @@ function buildInitialForm(patient) {
     return {
         first_name: placeholder ? '' : patient?.first_name || '',
         last_name: placeholder ? '' : patient?.last_name || '',
-        doctor_id: patient?.doctor_id || '',
+        doctor_code: patient?.doctor_invite_code || '',
         date_of_birth: patient?.date_of_birth || '',
         medical_id: placeholder ? '' : patient?.medical_id || '',
         blood_type: patient?.blood_type || '',
@@ -45,17 +45,22 @@ export default function PatientRegistrationCard({ patient, onSave, saving }) {
         setSuccess('');
 
         try {
-            await onSave({
+            const savedPatient = await onSave({
                 ...form,
                 first_name: form.first_name.trim(),
                 last_name: form.last_name.trim(),
-                doctor_id: form.doctor_id.trim(),
+                doctor_code: form.doctor_code.trim().toUpperCase(),
                 medical_id: form.medical_id.trim(),
                 blood_type: form.blood_type.trim(),
                 emergency_contact: form.emergency_contact.trim(),
                 notes: form.notes.trim(),
             });
-            setSuccess('Patient registration saved locally. It will sync to Supabase when internet is available.');
+            const doctorName = savedPatient?.assigned_doctor_name;
+            setSuccess(
+                doctorName
+                    ? `Patient registration saved locally and linked to ${doctorName}. It will sync to Supabase when internet is available.`
+                    : 'Patient registration saved locally. It will sync to Supabase when internet is available.'
+            );
         } catch (submitError) {
             setError(submitError.message || 'Unable to save patient registration');
         }
@@ -72,7 +77,7 @@ export default function PatientRegistrationCard({ patient, onSave, saving }) {
                         Register Patient
                     </h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        Enter the patient profile and the doctor ID shown in the doctor dashboard.
+                        Enter the patient profile and the doctor code shown in the doctor dashboard.
                     </p>
                 </div>
             </div>
@@ -115,14 +120,14 @@ export default function PatientRegistrationCard({ patient, onSave, saving }) {
                     </label>
 
                     <label className="block">
-                        <span className="text-xs text-gray-500 dark:text-gray-400">Doctor ID</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">Doctor Code</span>
                         <input
                             className="mt-1 w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800/60 text-gray-900 dark:text-white focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/25 transition-all duration-200"
-                            name="doctor_id"
+                            name="doctor_code"
                             onChange={updateField}
-                            placeholder="Example: 7"
+                            placeholder="Example: HG-4K9M2Q"
                             required
-                            value={form.doctor_id}
+                            value={form.doctor_code}
                         />
                     </label>
                 </div>
@@ -174,8 +179,8 @@ export default function PatientRegistrationCard({ patient, onSave, saving }) {
                 <div className="rounded-xl border border-brand-500/20 bg-brand-500/5 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 flex items-start gap-3">
                     <UserRound className="w-4 h-4 mt-0.5 text-brand-500 dark:text-brand-400 shrink-0" />
                     <span>
-                        The patient profile is saved locally first, so registration still works offline.
-                        Once the device reconnects, the assignment to this doctor is synced to Supabase.
+                        The doctor code is verified before registration is saved. After that, the patient
+                        profile is stored locally and synced to Supabase when internet is available.
                     </span>
                 </div>
 

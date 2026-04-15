@@ -38,6 +38,12 @@ def _run_startup_migrations(sync_conn) -> None:
     if "doctor_id" not in patient_columns:
         sync_conn.exec_driver_sql("ALTER TABLE patients ADD COLUMN doctor_id VARCHAR(50)")
 
+    if "doctor_invite_code" not in patient_columns:
+        sync_conn.exec_driver_sql("ALTER TABLE patients ADD COLUMN doctor_invite_code VARCHAR(20)")
+
+    if "assigned_doctor_name" not in patient_columns:
+        sync_conn.exec_driver_sql("ALTER TABLE patients ADD COLUMN assigned_doctor_name VARCHAR(150)")
+
     sync_conn.exec_driver_sql(
         "CREATE INDEX IF NOT EXISTS ix_patients_doctor_id ON patients (doctor_id)"
     )
