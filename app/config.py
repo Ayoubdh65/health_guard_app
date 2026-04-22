@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     SUPABASE_PATIENTS_TABLE: str = "patients"
     SUPABASE_ALERTS_TABLE: str = "alerts"
     SUPABASE_APPOINTMENTS_TABLE: str = "appointments"
+    SUPABASE_DOCTORS_TABLE: str = "doctors"
     DOCTOR_BACKEND_URL: str = "http://localhost:3001/api"
     SYNC_INTERVAL_SECONDS: int = 300
     SYNC_BATCH_SIZE: int = 100

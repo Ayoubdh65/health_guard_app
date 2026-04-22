@@ -77,7 +77,7 @@ export default function PatientRegistrationCard({ patient, onSave, saving }) {
                         Register Patient
                     </h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        Enter the patient profile and the doctor code shown in the doctor dashboard.
+                        Enter the patient profile and the doctor code stored in the central HealthGuard database.
                     </p>
                 </div>
             </div>
@@ -179,8 +179,9 @@ export default function PatientRegistrationCard({ patient, onSave, saving }) {
                 <div className="rounded-xl border border-brand-500/20 bg-brand-500/5 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 flex items-start gap-3">
                     <UserRound className="w-4 h-4 mt-0.5 text-brand-500 dark:text-brand-400 shrink-0" />
                     <span>
-                        The doctor code is verified before registration is saved. After that, the patient
-                        profile is stored locally and synced to Supabase when internet is available.
+                        The doctor code is verified against the central Supabase database before registration
+                        is saved. After that, the patient profile is stored locally and synced to Supabase
+                        when internet is available.
                     </span>
                 </div>
 

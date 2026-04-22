@@ -25,24 +25,65 @@ def _is_placeholder_patient(patient: Patient) -> bool:
     )
 
 
+def _supabase_headers(service_role_key: str) -> dict[str, str]:
+    return {
+        "apikey": service_role_key,
+        "Authorization": f"Bearer {service_role_key}",
+        "Content-Type": "application/json",
+    }
+
+
+def _extract_doctor_record(raw_doctor: dict) -> dict:
+    doctor_id = raw_doctor.get("id")
+    invite_code = raw_doctor.get("invite_code")
+    full_name = raw_doctor.get("full_name")
+
+    if doctor_id is None or not invite_code or not full_name:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Doctor verification is misconfigured: expected Supabase doctors "
+                "table columns id, invite_code, and full_name"
+            ),
+        )
+
+    return {
+        "id": str(doctor_id),
+        "inviteCode": str(invite_code),
+        "fullName": str(full_name),
+    }
+
+
 async def _resolve_doctor_code(doctor_code: str) -> dict:
     settings = get_settings()
-    lookup_url = f"{settings.DOCTOR_BACKEND_URL}/public/doctors/lookup"
+    lookup_code = doctor_code.strip().upper()
+    lookup_url = f"{settings.SUPABASE_URL}/rest/v1/{settings.SUPABASE_DOCTORS_TABLE}"
 
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
             response = await client.get(
                 lookup_url,
-                params={"code": doctor_code.strip().upper()},
+                params={
+                    "select": "id,invite_code,full_name",
+                    "invite_code": f"eq.{lookup_code}",
+                    "limit": 1,
+                },
+                headers=_supabase_headers(settings.SUPABASE_SERVICE_ROLE_KEY),
             )
     except httpx.HTTPError as exc:
         raise HTTPException(
             status_code=502,
-            detail=f"Doctor verification service is unavailable: {exc}",
+            detail=f"Doctor verification via Supabase is unavailable: {exc}",
         ) from exc
 
-    if response.status_code == 404:
-        raise HTTPException(status_code=400, detail="Doctor code not found")
+    if response.status_code == 400:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Doctor verification is misconfigured: the Supabase doctors table "
+                "must contain id, invite_code, and full_name"
+            ),
+        )
 
     if response.status_code != 200:
         raise HTTPException(
@@ -51,11 +92,10 @@ async def _resolve_doctor_code(doctor_code: str) -> dict:
         )
 
     payload = response.json()
-    doctor = payload.get("doctor")
-    if not payload.get("valid") or not doctor:
-        raise HTTPException(status_code=400, detail="Doctor code is invalid")
+    if not payload:
+        raise HTTPException(status_code=400, detail="Doctor code not found")
 
-    return doctor
+    return _extract_doctor_record(payload[0])
 
 
 def _apply_patient_payload(patient: Patient, payload_data: dict, doctor: dict | None = None) -> None:
