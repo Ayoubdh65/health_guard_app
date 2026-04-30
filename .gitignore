@@ -22,3 +22,5 @@ app/static/
 # OS
 .DS_Store
 Thumbs.db
+
+docs/

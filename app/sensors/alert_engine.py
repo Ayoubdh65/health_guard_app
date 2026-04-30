@@ -30,7 +30,7 @@ _consecutive_breach_counts: dict[tuple[int, str], int] = {}
 _sensor_disconnect_counts: dict[int, int] = {}
 
 # Number of consecutive bad readings required before alerting
-ALERT_CONFIRMATION_READINGS = 2
+ALERT_CONFIRMATION_READINGS = 1
 
 
 def subscribe_alerts() -> asyncio.Queue:

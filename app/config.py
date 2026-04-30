@@ -12,31 +12,31 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables / .env file."""
 
     # ── Device ──────────────────────────────────────────────────────────
-    DEVICE_ID: str = "edge-node-001"
+    DEVICE_ID: str
 
     # ── Database ────────────────────────────────────────────────────────
-    DATABASE_URL: str = "sqlite+aiosqlite:///./healthguard.db"
+    DATABASE_URL: str
 
     # ── Sensor ──────────────────────────────────────────────────────────
     MOCK_MODE: bool = True
     SENSOR_INTERVAL_SECONDS: int = 5
 
     # ── Central Server Sync ─────────────────────────────────────────────
-    SUPABASE_URL: str = "https://uuvttjinbalhkafzxadt.supabase.co"
-    SUPABASE_SERVICE_ROLE_KEY: str = "sb_publishable_6ovR25xOCn7drQoptpcr9Q_sY_5suhH"
-    SUPABASE_VITALS_TABLE: str = "vital_readings"
-    SUPABASE_PATIENTS_TABLE: str = "patients"
-    SUPABASE_ALERTS_TABLE: str = "alerts"
-    SUPABASE_APPOINTMENTS_TABLE: str = "appointments"
-    SUPABASE_DOCTORS_TABLE: str = "doctors"
-    DOCTOR_BACKEND_URL: str = "http://localhost:3001/api"
+    SUPABASE_URL: str
+    SUPABASE_SERVICE_ROLE_KEY: str
+    SUPABASE_VITALS_TABLE: str
+    SUPABASE_PATIENTS_TABLE: str
+    SUPABASE_ALERTS_TABLE: str
+    SUPABASE_APPOINTMENTS_TABLE: str
+    SUPABASE_DOCTORS_TABLE: str
+    DOCTOR_BACKEND_URL: str
     SYNC_INTERVAL_SECONDS: int = 300
     SYNC_BATCH_SIZE: int = 100
 
     # ── Security ────────────────────────────────────────────────────────
-    SECRET_KEY: str = "change-this-to-a-random-secret-key"
+    SECRET_KEY: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480  # 8 hours
-    DEFAULT_ADMIN_PASSWORD: str = "admin"
+    DEFAULT_ADMIN_PASSWORD: str
 
     # ── Alert Thresholds ────────────────────────────────────────────────
     ALERT_HR_LOW: float = 50.0
