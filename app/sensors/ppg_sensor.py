@@ -1,10 +1,3 @@
-"""
-HealthGuard Edge Node – Real PPG / I2C Sensor Reader (Stub).
-
-This module provides the interface for reading from a real PPG heart rate
-sensor connected via I2C on a Raspberry Pi.
-"""
-
 import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
@@ -15,88 +8,11 @@ from app.sensors.sensor_interface import SensorReader, SensorData
 logger = logging.getLogger(__name__)
 
 
-class PPGSensorStub(SensorReader):
-    """
-    Real PPG sensor reader using smbus2 (I2C).
-
-    Designed for MAX30102 / MAX30105 pulse oximeter breakout boards.
-    Requires: smbus2, RPi.GPIO (installed on Raspberry Pi OS).
-    """
-
-    I2C_ADDRESS = 0x57  # Default MAX30102 address
-    I2C_BUS = 1         # Raspberry Pi I2C bus 1
-
-    def __init__(self) -> None:
-        self._available = False
-        self._bus = None
-
-    async def initialize(self) -> None:
-        """Attempt to open the I2C bus and verify sensor presence."""
-        try:
-            import smbus2  # type: ignore
-            self._bus = smbus2.SMBus(self.I2C_BUS)
-            # Probe the sensor – read the part ID register
-            part_id = self._bus.read_byte_data(self.I2C_ADDRESS, 0xFF)
-            logger.info(f"PPG sensor detected on I2C bus {self.I2C_BUS}, part ID: 0x{part_id:02X}")
-            self._available = True
-        except ImportError:
-            logger.error(
-                "smbus2 not installed. Install with: pip install smbus2\n"
-                "This package is only available on Linux / Raspberry Pi."
-            )
-            raise RuntimeError("smbus2 library not available – cannot use real sensor")
-        except FileNotFoundError:
-            logger.error(
-                f"I2C bus {self.I2C_BUS} not found. Ensure I2C is enabled:\n"
-                "  sudo raspi-config → Interface Options → I2C → Enable"
-            )
-            raise RuntimeError("I2C bus not available")
-        except OSError as exc:
-            logger.error(f"Could not communicate with sensor at 0x{self.I2C_ADDRESS:02X}: {exc}")
-            raise RuntimeError(f"Sensor not responding: {exc}")
-
-    async def read(self) -> SensorData:
-        
-        if not self._available or self._bus is None:
-            raise RuntimeError("Sensor not initialized")
-
-    
-        await asyncio.sleep(0.5)  # simulate sampling time
-
-        logger.warning(
-            "PPGSensor.read() is a stub. Implement full MAX30102 driver "
-            "for production use."
-        )
-
-        return SensorData(
-            heart_rate=None,
-            spo2=None,
-            temperature=None,
-        )
-
-    async def shutdown(self) -> None:
-        """Close the I2C bus."""
-        if self._bus is not None:
-            self._bus.close()
-            self._bus = None
-        self._available = False
-
-    @property
-    def is_available(self) -> bool:
-        return self._available
-
-
 class PPGSensor(SensorReader):
-    """Real MAX30102 reader backed by smbus2."""
-
     I2C_ADDRESS = 0x57
     I2C_BUS = 1
 
-    REG_FIFO_WR_PTR = 0x04
-    REG_OVF_COUNTER = 0x05
-    REG_FIFO_RD_PTR = 0x06
     REG_FIFO_DATA = 0x07
-    REG_FIFO_CONFIG = 0x08
     REG_MODE_CONFIG = 0x09
     REG_SPO2_CONFIG = 0x0A
     REG_LED1_PA = 0x0C
@@ -105,74 +21,59 @@ class PPGSensor(SensorReader):
 
     SAMPLE_DELAY = 0.04
     SAMPLE_RATE = 1 / SAMPLE_DELAY
-    BUFFER_SIZE = 120
+
+    BUFFER_SIZE = 200   # increased for stability
     REFRESH_SAMPLES = 25
+
     FINGER_DETECT_THRESHOLD = 20000
-    SIGNAL_P2P_MIN = 1000
-    PEAK_THRESHOLD_RATIO = 0.35
-    SIGNAL_SMOOTHING_WINDOW = 5
+    SIGNAL_P2P_MIN = 800   # relaxed
+
     VALUE_SMOOTHING_WINDOW = 3
     READING_HOLD_SECONDS = 15
 
     def __init__(self) -> None:
         self._available = False
         self._bus = None
+
         self._red_buffer: list[int] = []
         self._ir_buffer: list[int] = []
+
         self._recent_heart_rates: list[float] = []
         self._recent_spo2_values: list[float] = []
+
         self._last_valid_heart_rate: float | None = None
         self._last_valid_spo2: float | None = None
+
         self._last_valid_heart_rate_at: datetime | None = None
         self._last_valid_spo2_at: datetime | None = None
 
     async def initialize(self) -> None:
-        """Open the I2C bus and configure the MAX30102."""
         try:
             import smbus2  # type: ignore
 
             self._bus = smbus2.SMBus(self.I2C_BUS)
-            part_id = self._read_byte(self.REG_PART_ID)
-            if part_id != 0x15:
-                raise RuntimeError(f"Wrong PART ID: {hex(part_id)}")
 
-            logger.info(
-                "MAX30102 detected on I2C bus %s (part id %s)",
-                self.I2C_BUS,
-                hex(part_id),
-            )
+            part_id = self._bus.read_byte_data(self.I2C_ADDRESS, self.REG_PART_ID)
+            logger.info(f"MAX30102 detected (part id={hex(part_id)})")
 
-            self._write_byte(self.REG_MODE_CONFIG, 0x40)
+            # reset
+            self._bus.write_byte_data(self.I2C_ADDRESS, self.REG_MODE_CONFIG, 0x40)
             await asyncio.sleep(0.2)
 
-            self._write_byte(self.REG_FIFO_WR_PTR, 0x00)
-            self._write_byte(self.REG_OVF_COUNTER, 0x00)
-            self._write_byte(self.REG_FIFO_RD_PTR, 0x00)
-            self._write_byte(self.REG_FIFO_CONFIG, 0x0F)
-            self._write_byte(self.REG_SPO2_CONFIG, 0x27)
-            self._write_byte(self.REG_LED1_PA, 0x24)
-            self._write_byte(self.REG_LED2_PA, 0x24)
-            self._write_byte(self.REG_MODE_CONFIG, 0x03)
+            # config
+            self._bus.write_byte_data(self.I2C_ADDRESS, self.REG_SPO2_CONFIG, 0x27)
+            self._bus.write_byte_data(self.I2C_ADDRESS, self.REG_LED1_PA, 0x24)
+            self._bus.write_byte_data(self.I2C_ADDRESS, self.REG_LED2_PA, 0x24)
+            self._bus.write_byte_data(self.I2C_ADDRESS, self.REG_MODE_CONFIG, 0x03)
 
-            await asyncio.sleep(0.1)
             self._available = True
-            logger.info("MAX30102 sensor initialized")
-        except ImportError as exc:
-            logger.error("smbus2 is required for the real MAX30102 sensor")
-            raise RuntimeError("smbus2 library not available") from exc
-        except FileNotFoundError as exc:
-            logger.error("I2C bus %s not found. Enable I2C in raspi-config.", self.I2C_BUS)
-            raise RuntimeError("I2C bus not available") from exc
-        except OSError as exc:
-            logger.error(
-                "Could not communicate with MAX30102 at 0x%02X: %s",
-                self.I2C_ADDRESS,
-                exc,
-            )
-            raise RuntimeError(f"Sensor not responding: {exc}") from exc
+            logger.info("MAX30102 initialized")
+
+        except Exception as e:
+            logger.error(f"Sensor init failed: {e}")
+            raise
 
     async def read(self) -> SensorData:
-        """Collect samples and estimate heart rate and SpO2."""
         if not self._available or self._bus is None:
             raise RuntimeError("Sensor not initialized")
 
@@ -180,14 +81,13 @@ class PPGSensor(SensorReader):
         timestamp = datetime.now(timezone.utc)
 
         ir_dc = self._mean(self._ir_buffer)
+
         if ir_dc < self.FINGER_DETECT_THRESHOLD:
-            logger.info("MAX30102: no finger detected")
             self._reset_estimates()
             return SensorData(
                 timestamp=timestamp,
                 heart_rate=None,
                 spo2=None,
-                temperature=None,
                 ppg_raw=self._normalized_waveform(),
             )
 
@@ -195,194 +95,139 @@ class PPGSensor(SensorReader):
         spo2 = self._calculate_spo2(self._red_buffer, self._ir_buffer)
 
         heart_rate = self._stabilize_value(
-            value=heart_rate,
-            history=self._recent_heart_rates,
-            timestamp=timestamp,
-            value_type="heart_rate",
+            heart_rate, self._recent_heart_rates, timestamp, "heart_rate"
         )
         spo2 = self._stabilize_value(
-            value=spo2,
-            history=self._recent_spo2_values,
-            timestamp=timestamp,
-            value_type="spo2",
+            spo2, self._recent_spo2_values, timestamp, "spo2"
         )
-
-        if heart_rate is None or spo2 is None:
-            logger.info(
-                "MAX30102: signal captured but estimates are not stable yet "
-                "(heart_rate=%s, spo2=%s)",
-                heart_rate,
-                spo2,
-            )
 
         return SensorData(
             timestamp=timestamp,
             heart_rate=heart_rate,
             spo2=spo2,
-            temperature=None,
-            blood_pressure_sys=None,
-            blood_pressure_dia=None,
-            respiratory_rate=None,
             ppg_raw=self._normalized_waveform(),
         )
 
     async def shutdown(self) -> None:
-        """Close the I2C bus."""
-        if self._bus is not None:
+        if self._bus:
             self._bus.close()
-            self._bus = None
         self._available = False
-        self._red_buffer.clear()
-        self._ir_buffer.clear()
 
-    @property
-    def is_available(self) -> bool:
-        return self._available
+    # ---------------- SIGNAL PROCESSING ---------------- #
 
-    def _read_byte(self, reg: int) -> int:
-        return self._bus.read_byte_data(self.I2C_ADDRESS, reg)
+    def _bandpass_filter(self, data: list[float]) -> list[float]:
+        hp = [data[i] - data[i - 1] if i > 0 else 0 for i in range(len(data))]
+        window = 4
+        return [
+            sum(hp[max(0, i - window): i + 1]) / len(hp[max(0, i - window): i + 1])
+            for i in range(len(hp))
+        ]
 
-    def _write_byte(self, reg: int, value: int) -> None:
-        self._bus.write_byte_data(self.I2C_ADDRESS, reg, value)
+    def _calculate_heart_rate(self, ir_buffer: List[int], sample_rate: float) -> float | None:
+        if len(ir_buffer) < 30:
+            return self._last_valid_heart_rate
 
-    def _read_sample(self) -> tuple[int, int]:
-        raw = self._bus.read_i2c_block_data(self.I2C_ADDRESS, self.REG_FIFO_DATA, 6)
-        red = ((raw[0] & 0x03) << 16) | (raw[1] << 8) | raw[2]
-        ir = ((raw[3] & 0x03) << 16) | (raw[4] << 8) | raw[5]
-        return red, ir
+        signal = self._bandpass_filter(self._remove_dc(ir_buffer))
+        p2p = self._peak_to_peak(signal)
 
-    async def _collect_samples(self) -> None:
-        samples_needed = (
-            self.BUFFER_SIZE
-            if len(self._ir_buffer) < self.BUFFER_SIZE
-            else self.REFRESH_SAMPLES
-        )
+        if p2p < self.SIGNAL_P2P_MIN:
+            return self._last_valid_heart_rate
 
-        for _ in range(samples_needed):
-            red, ir = self._read_sample()
-            self._red_buffer.append(red)
-            self._ir_buffer.append(ir)
+        mean = self._mean(signal)
+        std = (sum((x - mean) ** 2 for x in signal) / len(signal)) ** 0.5
+        threshold = mean + 0.5 * std
 
-            if len(self._red_buffer) > self.BUFFER_SIZE:
-                self._red_buffer.pop(0)
-            if len(self._ir_buffer) > self.BUFFER_SIZE:
-                self._ir_buffer.pop(0)
+        min_distance = int(sample_rate * 0.4)
+        peaks = []
 
-            await asyncio.sleep(self.SAMPLE_DELAY)
+        for i in range(2, len(signal) - 2):
+            if signal[i] > threshold and signal[i] > signal[i - 1] and signal[i] > signal[i + 1]:
+                if not peaks or (i - peaks[-1]) > min_distance:
+                    peaks.append(i)
+
+        if len(peaks) < 2:
+            return self._last_valid_heart_rate
+
+        intervals = [peaks[i + 1] - peaks[i] for i in range(len(peaks) - 1)]
+        intervals.sort()
+        median_interval = intervals[len(intervals) // 2]
+
+        if median_interval <= 0:
+            return self._last_valid_heart_rate
+
+        bpm = (sample_rate / median_interval) * 60
+
+        if not (40 <= bpm <= 200):
+            return self._last_valid_heart_rate
+
+        if self._last_valid_heart_rate and abs(bpm - self._last_valid_heart_rate) > 20:
+            return self._last_valid_heart_rate
+
+        return round(bpm, 1)
+
+    def _calculate_spo2(self, red_buffer: List[int], ir_buffer: List[int]) -> float | None:
+        red_dc = self._mean(red_buffer)
+        ir_dc = self._mean(ir_buffer)
+
+        red_ac = self._peak_to_peak(self._bandpass_filter(self._remove_dc(red_buffer)))
+        ir_ac = self._peak_to_peak(self._bandpass_filter(self._remove_dc(ir_buffer)))
+
+        if red_dc <= 0 or ir_dc <= 0 or red_ac <= 0 or ir_ac <= 0:
+            return self._last_valid_spo2
+
+        ratio = (red_ac / red_dc) / (ir_ac / ir_dc)
+        spo2 = 104 - 17 * ratio
+
+        if 70 <= spo2 <= 100:
+            return round(spo2, 1)
+
+        return self._last_valid_spo2
+
+    # ---------------- UTILITIES ---------------- #
 
     def _normalized_waveform(self) -> list[float]:
         if not self._ir_buffer:
             return []
-        centered = self._smooth_signal(self._remove_dc(self._ir_buffer))
-        return [round(value, 4) for value in centered[-50:]]
+        signal = self._bandpass_filter(self._remove_dc(self._ir_buffer))
+        return [round(v, 4) for v in signal[-50:]]
 
     @staticmethod
     def _mean(data: List[float]) -> float:
         return sum(data) / len(data) if data else 0.0
 
-    @classmethod
-    def _remove_dc(cls, data: List[float]) -> list[float]:
-        avg = cls._mean(data)
-        return [value - avg for value in data]
+    @staticmethod
+    def _remove_dc(data: List[float]) -> list[float]:
+        avg = sum(data) / len(data)
+        return [x - avg for x in data]
 
     @staticmethod
     def _peak_to_peak(data: List[float]) -> float:
-        if not data:
-            return 0.0
-        return max(data) - min(data)
+        return max(data) - min(data) if data else 0.0
 
-    @classmethod
-    def _smooth_signal(cls, data: List[float], window: int | None = None) -> list[float]:
-        if not data:
-            return []
-
-        size = window or cls.SIGNAL_SMOOTHING_WINDOW
-        if size <= 1 or len(data) < size:
-            return list(data)
-
-        smoothed: list[float] = []
-        for index in range(len(data)):
-            start = max(0, index - size + 1)
-            chunk = data[start : index + 1]
-            smoothed.append(cls._mean(chunk))
-        return smoothed
-
-    def _calculate_heart_rate(self, ir_buffer: List[int], sample_rate: float) -> float | None:
-        signal = self._smooth_signal(self._remove_dc(ir_buffer))
-        p2p = self._peak_to_peak(signal)
-
-        if p2p < self.SIGNAL_P2P_MIN:
-            return None
-
-        threshold = p2p * self.PEAK_THRESHOLD_RATIO
-        min_distance = int(sample_rate * 0.4)
-        peaks: list[int] = []
-
-        for index in range(1, len(signal) - 1):
-            if (
-                signal[index] > threshold
-                and signal[index] > signal[index - 1]
-                and signal[index] > signal[index + 1]
-            ):
-                if not peaks or (index - peaks[-1]) >= min_distance:
-                    peaks.append(index)
-
-        if len(peaks) < 2:
-            return None
-
-        intervals = [peaks[i + 1] - peaks[i] for i in range(len(peaks) - 1)]
-        avg_interval = self._mean(intervals)
-        if avg_interval <= 0:
-            return None
-
-        bpm = (sample_rate / avg_interval) * 60
-        if 40 <= bpm <= 200:
-            return round(bpm, 1)
-        return None
-
-    def _calculate_spo2(self, red_buffer: List[int], ir_buffer: List[int]) -> float | None:
-        red_dc = self._mean(red_buffer)
-        ir_dc = self._mean(ir_buffer)
-        red_ac = self._peak_to_peak(self._smooth_signal(self._remove_dc(red_buffer)))
-        ir_ac = self._peak_to_peak(self._smooth_signal(self._remove_dc(ir_buffer)))
-
-        if red_dc <= 0 or ir_dc <= 0 or red_ac <= 0 or ir_ac <= 0:
-            return None
-
-        ratio = (red_ac / red_dc) / (ir_ac / ir_dc)
-        spo2 = 104 - 17 * ratio
-        if 70 <= spo2 <= 100:
-            return round(spo2, 1)
-        return None
-
-    def _stabilize_value(
-        self,
-        value: float | None,
-        history: list[float],
-        timestamp: datetime,
-        value_type: str,
-    ) -> float | None:
+    def _stabilize_value(self, value, history, timestamp, value_type):
         if value is not None:
             history.append(value)
             if len(history) > self.VALUE_SMOOTHING_WINDOW:
                 history.pop(0)
 
-            smoothed_value = round(self._mean(history), 1)
+            value = round(self._mean(history), 1)
+
             if value_type == "heart_rate":
-                self._last_valid_heart_rate = smoothed_value
+                self._last_valid_heart_rate = value
                 self._last_valid_heart_rate_at = timestamp
             else:
-                self._last_valid_spo2 = smoothed_value
+                self._last_valid_spo2 = value
                 self._last_valid_spo2_at = timestamp
-            return smoothed_value
 
-        last_valid_at = (
+            return value
+
+        last_time = (
             self._last_valid_heart_rate_at
             if value_type == "heart_rate"
             else self._last_valid_spo2_at
         )
 
-        if last_valid_at and (timestamp - last_valid_at) <= timedelta(seconds=self.READING_HOLD_SECONDS):
+        if last_time and (timestamp - last_time) <= timedelta(seconds=self.READING_HOLD_SECONDS):
             return (
                 self._last_valid_heart_rate
                 if value_type == "heart_rate"
@@ -391,7 +236,7 @@ class PPGSensor(SensorReader):
 
         return None
 
-    def _reset_estimates(self) -> None:
+    def _reset_estimates(self):
         self._recent_heart_rates.clear()
         self._recent_spo2_values.clear()
         self._last_valid_heart_rate = None

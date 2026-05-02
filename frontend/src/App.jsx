@@ -414,7 +414,12 @@ function Dashboard({ currentUser, onLogout }) {
                                         saving={patientSaving}
                                     />
                                 ) : (
-                                    <PatientInfo patient={patient} loading={patientLoading} />
+                                    <PatientInfo
+                                        patient={patient}
+                                        loading={patientLoading}
+                                        onSave={saveProfile}
+                                        saving={patientSaving}
+                                    />
                                 )}
                                 <SystemStatus status={status} loading={systemLoading} />
                             </div>
