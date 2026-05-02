@@ -44,16 +44,18 @@ class PPGSensor(SensorReader):
     REFRESH_SAMPLES = 25
     MIN_ANALYSIS_SAMPLES = 100
 
-    FINGER_DETECT_THRESHOLD = 20000
-    SIGNAL_P2P_MIN = 500
+    FINGER_DETECT_THRESHOLD = 12000
+    SIGNAL_P2P_MIN = 250
     SIGNAL_P2P_MAX = 120000
 
-    VALUE_SMOOTHING_WINDOW = 5
-    READING_HOLD_SECONDS = 30
+    VALUE_SMOOTHING_WINDOW = 7
+    READING_HOLD_SECONDS = 45
 
     MIN_BPM = 40.0
     MAX_BPM = 200.0
-    MAX_BPM_JUMP = 25.0
+    MAX_BPM_JUMP = 35.0
+
+    MISSING_FINGER_READS_TO_CLEAR = 8
 
     MIN_SPO2 = 70.0
     MAX_SPO2 = 100.0
@@ -73,7 +75,7 @@ class PPGSensor(SensorReader):
 
         self._last_valid_heart_rate_at: Optional[datetime] = None
         self._last_valid_spo2_at: Optional[datetime] = None
-
+        self._missing_finger_reads = 0
     @property
     def is_available(self) -> bool:
         return self._available
@@ -121,13 +123,18 @@ class PPGSensor(SensorReader):
         timestamp = datetime.now(timezone.utc)
 
         if not self._finger_present():
-            self._reset_estimates(clear_buffers=False)
+            self._missing_finger_reads += 1
+            if self._missing_finger_reads >= self.MISSING_FINGER_READS_TO_CLEAR:
+                self._reset_estimates(clear_buffers=False)
+
             return SensorData(
                 timestamp=timestamp,
-                heart_rate=None,
-                spo2=None,
+                heart_rate=self._held_value(timestamp, "heart_rate"),
+                spo2=self._held_value(timestamp, "spo2"),
                 ppg_raw=self._normalized_waveform(),
             )
+
+        self._missing_finger_reads = 0
 
         if self._signal_quality_ok():
             heart_rate = self._calculate_heart_rate(self._ir_buffer, self.SAMPLE_RATE)
@@ -450,6 +457,24 @@ class PPGSensor(SensorReader):
             )
 
         return None
+
+    def _held_value(self, timestamp: datetime, value_type: str) -> Optional[float]:
+        last_time = (
+            self._last_valid_heart_rate_at
+            if value_type == "heart_rate"
+            else self._last_valid_spo2_at
+        )
+        if not last_time:
+            return None
+
+        if (timestamp - last_time) > timedelta(seconds=self.READING_HOLD_SECONDS):
+            return None
+
+        return (
+            self._last_valid_heart_rate
+            if value_type == "heart_rate"
+            else self._last_valid_spo2
+        )
 
     def _reset_estimates(self, clear_buffers: bool = False) -> None:
         self._recent_heart_rates.clear()
