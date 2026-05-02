@@ -49,7 +49,7 @@ class PPGSensor(SensorReader):
     SIGNAL_P2P_MAX = 120000
 
     VALUE_SMOOTHING_WINDOW = 5
-    READING_HOLD_SECONDS = 10
+    READING_HOLD_SECONDS = 30
 
     MIN_BPM = 40.0
     MAX_BPM = 200.0
@@ -120,7 +120,7 @@ class PPGSensor(SensorReader):
         await self._collect_samples()
         timestamp = datetime.now(timezone.utc)
 
-        if not self._finger_detected():
+        if not self._finger_present():
             self._reset_estimates(clear_buffers=False)
             return SensorData(
                 timestamp=timestamp,
@@ -129,8 +129,12 @@ class PPGSensor(SensorReader):
                 ppg_raw=self._normalized_waveform(),
             )
 
-        heart_rate = self._calculate_heart_rate(self._ir_buffer, self.SAMPLE_RATE)
-        spo2 = self._calculate_spo2(self._red_buffer, self._ir_buffer)
+        if self._signal_quality_ok():
+            heart_rate = self._calculate_heart_rate(self._ir_buffer, self.SAMPLE_RATE)
+            spo2 = self._calculate_spo2(self._red_buffer, self._ir_buffer)
+        else:
+            heart_rate = None
+            spo2 = None
 
         heart_rate = self._stabilize_value(
             heart_rate,
@@ -226,19 +230,22 @@ class PPGSensor(SensorReader):
 
     # ---------------- SIGNAL PROCESSING ---------------- #
 
-    def _finger_detected(self) -> bool:
+    def _finger_present(self) -> bool:
         if len(self._ir_buffer) < self.MIN_ANALYSIS_SAMPLES:
             return False
 
         recent_ir = self._ir_buffer[-self.MIN_ANALYSIS_SAMPLES :]
         ir_dc = self._mean(recent_ir)
+        return ir_dc >= self.FINGER_DETECT_THRESHOLD
+
+    def _signal_quality_ok(self) -> bool:
+        if len(self._ir_buffer) < self.MIN_ANALYSIS_SAMPLES:
+            return False
+
+        recent_ir = self._ir_buffer[-self.MIN_ANALYSIS_SAMPLES :]
         ir_signal = self._bandpass_filter(self._remove_dc(recent_ir))
         ir_p2p = self._peak_to_peak(ir_signal)
-
-        return (
-            ir_dc >= self.FINGER_DETECT_THRESHOLD
-            and self.SIGNAL_P2P_MIN <= ir_p2p <= self.SIGNAL_P2P_MAX
-        )
+        return self.SIGNAL_P2P_MIN <= ir_p2p <= self.SIGNAL_P2P_MAX
 
     def _bandpass_filter(self, data: List[float]) -> list[float]:
         if not data:
