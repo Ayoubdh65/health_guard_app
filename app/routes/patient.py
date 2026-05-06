@@ -110,6 +110,12 @@ def _apply_patient_payload(patient: Patient, payload_data: dict, doctor: dict | 
         patient.assigned_doctor_name = doctor["fullName"]
 
 
+def _clear_patient_doctor(patient: Patient) -> None:
+    patient.doctor_id = None
+    patient.doctor_invite_code = None
+    patient.assigned_doctor_name = None
+
+
 @router.get("", response_model=PatientResponse)
 async def get_patient(
     current_user: User = Depends(get_current_user),
@@ -168,9 +174,20 @@ async def update_patient(
         raise HTTPException(status_code=404, detail="No patient profile configured")
 
     update_data = payload.model_dump(exclude_unset=True)
+    remove_doctor = update_data.pop("remove_doctor", False)
+    doctor_code = update_data.get("doctor_code")
     doctor = None
 
-    if "doctor_code" in update_data:
+    if remove_doctor and doctor_code:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot remove doctor and assign a new doctor at the same time",
+        )
+
+    if remove_doctor:
+        update_data.pop("doctor_code", None)
+        _clear_patient_doctor(patient)
+    elif "doctor_code" in update_data:
         doctor = await _resolve_doctor_code(update_data["doctor_code"])
 
     _apply_patient_payload(patient, update_data, doctor)

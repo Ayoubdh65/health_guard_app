@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, Droplets, Edit3, FileText, Loader2, Phone, Save, User, X } from 'lucide-react';
+import { Calendar, Droplets, Edit3, FileText, Loader2, Phone, Save, User, UserMinus, X } from 'lucide-react';
 
 function buildForm(patient) {
     return {
@@ -11,6 +11,7 @@ function buildForm(patient) {
         blood_type: patient?.blood_type || '',
         emergency_contact: patient?.emergency_contact || '',
         notes: patient?.notes || '',
+        remove_doctor: false,
     };
 }
 
@@ -48,8 +49,11 @@ export default function PatientInfo({ patient, loading, onSave, saving = false }
     }
 
     const updateField = (event) => {
-        const { name, value } = event.target;
-        setForm((current) => ({ ...current, [name]: value }));
+        const { checked, name, type, value } = event.target;
+        setForm((current) => ({
+            ...current,
+            [name]: type === 'checkbox' ? checked : value,
+        }));
     };
 
     const cancelEdit = () => {
@@ -75,13 +79,19 @@ export default function PatientInfo({ patient, loading, onSave, saving = false }
         };
 
         const doctorCode = form.doctor_code.trim().toUpperCase();
-        if (doctorCode && doctorCode !== patient?.doctor_invite_code) {
+        if (form.remove_doctor) {
+            payload.remove_doctor = true;
+        } else if (doctorCode && doctorCode !== patient?.doctor_invite_code) {
             payload.doctor_code = doctorCode;
         }
 
         try {
             await onSave(payload);
-            setSuccess('Patient profile updated.');
+            setSuccess(
+                form.remove_doctor
+                    ? 'Patient profile updated. The doctor link will be removed after sync.'
+                    : 'Patient profile updated.'
+            );
             setEditing(false);
         } catch (submitError) {
             setError(submitError.message || 'Unable to update patient profile');
@@ -94,6 +104,7 @@ export default function PatientInfo({ patient, loading, onSave, saving = false }
         { icon: Droplets, label: 'Blood Type', value: patient.blood_type || '-' },
         { icon: FileText, label: 'Medical ID', value: patient.medical_id || '-' },
         { icon: Phone, label: 'Emergency', value: patient.emergency_contact || '-' },
+        { icon: UserMinus, label: 'Doctor', value: patient.assigned_doctor_name || patient.doctor_invite_code || '-' },
     ];
 
     return (
@@ -164,7 +175,8 @@ export default function PatientInfo({ patient, loading, onSave, saving = false }
                         <label className="block">
                             <span className="text-xs text-gray-500 dark:text-gray-400">Doctor Code</span>
                             <input
-                                className="mt-1 w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800/60 text-gray-900 dark:text-white focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/25 transition-all duration-200"
+                                className="mt-1 w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800/60 text-gray-900 dark:text-white focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/25 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={form.remove_doctor}
                                 name="doctor_code"
                                 onChange={updateField}
                                 placeholder="Example: HG-4K9M2Q"
@@ -172,6 +184,22 @@ export default function PatientInfo({ patient, loading, onSave, saving = false }
                             />
                         </label>
                     </div>
+
+                    {patient.doctor_id && (
+                        <label className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300 flex items-start gap-3 cursor-pointer">
+                            <input
+                                checked={form.remove_doctor}
+                                className="mt-1 h-4 w-4 rounded border-amber-400 text-amber-600 focus:ring-amber-500"
+                                name="remove_doctor"
+                                onChange={updateField}
+                                type="checkbox"
+                            />
+                            <span>
+                                Remove current doctor from this patient. This will clear the doctor link locally
+                                and remove the patient from the doctor dashboard after sync.
+                            </span>
+                        </label>
+                    )}
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <label className="block">

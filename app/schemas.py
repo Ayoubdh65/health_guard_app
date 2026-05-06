@@ -30,6 +30,7 @@ class PatientUpdate(BaseModel):
     first_name: Optional[str] = Field(None, max_length=100)
     last_name: Optional[str] = Field(None, max_length=100)
     doctor_code: Optional[str] = Field(None, min_length=3, max_length=20)
+    remove_doctor: Optional[bool] = False
     date_of_birth: Optional[str] = None
     medical_id: Optional[str] = None
     blood_type: Optional[str] = None

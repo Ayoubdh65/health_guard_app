@@ -50,6 +50,15 @@ def _build_full_name(patient: Patient) -> str:
     return f"{first} {last}".strip()
 
 
+def _is_placeholder_patient(patient: Patient) -> bool:
+    return (
+        patient.first_name == "Default"
+        and patient.last_name == "Patient"
+        and patient.medical_id == "MED-000001"
+        and not (patient.doctor_id or "").strip()
+    )
+
+
 async def _post_with_retry(
     url: str,
     payload: list[dict[str, Any]],
@@ -95,11 +104,11 @@ async def sync_patients(session: AsyncSession) -> tuple[bool, int, str | None]:
     if not patients:
         return True, 0, None
 
-    assigned_patients = [
-        patient for patient in patients if (patient.doctor_id or "").strip()
+    syncable_patients = [
+        patient for patient in patients if not _is_placeholder_patient(patient)
     ]
 
-    if not assigned_patients:
+    if not syncable_patients:
         return True, 0, None
 
     payload_data = [
@@ -118,7 +127,7 @@ async def sync_patients(session: AsyncSession) -> tuple[bool, int, str | None]:
             "created_at": _safe_iso(p.created_at),
             "updated_at": _safe_iso(datetime.now(timezone.utc)),
         }
-        for p in assigned_patients
+        for p in syncable_patients
     ]
 
     supabase_url = (
